@@ -7,8 +7,7 @@ namespace VsTeXProject
     /// Indicates the category to associate the associated property or event with, 
     /// when listing properties or events in a PropertyGrid control set to Categorized mode.
     /// </summary>
-    [AttributeUsage(AttributeTargets.All)]
-    internal sealed class ResourcesCategoryAttribute : CategoryAttribute
+    public sealed class ResourcesCategoryAttribute : CategoryAttribute
     {
         #region Constructors
         /// <summary>

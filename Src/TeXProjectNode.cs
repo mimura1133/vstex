@@ -25,7 +25,7 @@ namespace VsTeXProject
         #endregion
 
         #region Constants
-        internal const string ProjectTypeName = "MyCustomProject";
+        internal const string ProjectTypeName = "VsTeXProject";
         #endregion
 
         #region Fields
@@ -41,7 +41,7 @@ namespace VsTeXProject
         /// </summary>
         static TeXProjectNode()
         {
-            imageList = Utilities.GetImageList(typeof(TeXProjectNode).Assembly.GetManifestResourceStream("VsTeXProject.Resources.MyCustomProjectImageList.bmp"));
+            imageList = Utilities.GetImageList(typeof(TeXProjectNode).Assembly.GetManifestResourceStream("VsTeXProject.Resources.icon.bmp"));
         }
 
         /// <summary>

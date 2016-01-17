@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Globalization;
 using System.Resources;
 using System.Threading;
+using Microsoft.VisualStudio.Project;
 
 namespace VsTeXProject
 {
