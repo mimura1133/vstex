@@ -5,14 +5,14 @@ using Microsoft.VisualStudio.Project.Automation;
 namespace VsTeXProject
 {
     [ComVisible(true)]
-    public class OAMyCustomProject : OAProject
+    public class OaTeXProject : OAProject
     {
         #region Constructors
         /// <summary>
         /// Public constructor.
         /// </summary>
         /// <param name="project">Custom project.</param>
-        public OAMyCustomProject(MyCustomProjectNode project)
+        public OaTeXProject(TeXProjectNode project)
             : base(project)
         {
         }
@@ -21,7 +21,7 @@ namespace VsTeXProject
 
     [ComVisible(true)]
     [Guid("A5B66A93-D986-4016-B055-947FA912E2EB")]
-    public class OAMyCustomProjectFileItem : OAFileItem
+    public class OATeXProjectFileItem : OAFileItem
     {
         #region Constructors
         /// <summary>
@@ -29,7 +29,7 @@ namespace VsTeXProject
         /// </summary>
         /// <param name="project">Automation project.</param>
         /// <param name="node">Custom file node.</param>
-        public OAMyCustomProjectFileItem(OAProject project, FileNode node)
+        public OATeXProjectFileItem(OAProject project, FileNode node)
             : base(project, node)
         {
         }

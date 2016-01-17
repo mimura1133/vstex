@@ -8,19 +8,19 @@ namespace VsTeXProject
     /// This class extends the FileNode in order to represent a file 
     /// within the hierarchy.
     /// </summary>
-    public class MyCustomProjectFileNode : FileNode
+    public class TeXProjectFileNode : FileNode
     {
         #region Fields
-        private OAMyCustomProjectFileItem automationObject;
+        private OATeXProjectFileItem automationObject;
         #endregion
 
         #region Constructors
         /// <summary>
-        /// Initializes a new instance of the <see cref="MyCustomProjectFileNode"/> class.
+        /// Initializes a new instance of the <see cref="TeXProjectFileNode"/> class.
         /// </summary>
         /// <param name="root">The project node.</param>
         /// <param name="e">The project element node.</param>
-        internal MyCustomProjectFileNode(ProjectNode root, ProjectElement e)
+        internal TeXProjectFileNode(ProjectNode root, ProjectElement e)
             : base(root, e)
         {
         }
@@ -35,7 +35,7 @@ namespace VsTeXProject
         {
             if(automationObject == null)
             {
-                automationObject = new OAMyCustomProjectFileItem(this.ProjectMgr.GetAutomationObject() as OAProject, this);
+                automationObject = new OATeXProjectFileItem(this.ProjectMgr.GetAutomationObject() as OAProject, this);
             }
 
             return automationObject;
