@@ -11,7 +11,7 @@
     <RootNamespace>VsTeXProject</RootNamespace>
     <AssemblyName>VsTeXProject</AssemblyName>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>Key.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>TeXExtensions.snk</AssemblyOriginatorKeyFile>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <ProjectGuid>{F4ADEBDB-CD20-4532-B4E3-FE7424F5369C}</ProjectGuid>
     <FileUpgradeFlags>
@@ -77,7 +77,13 @@
     <Reference Include="Microsoft.Build.Engine" />
     <Reference Include="Microsoft.Build.Tasks" />
     <Reference Include="Microsoft.VisualStudio.Designer.Interfaces, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+    <Reference Include="Microsoft.VisualStudio.Modeling.SDK.Integration.14.0, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.VisualStudio.OLE.Interop, Version=7.1.40304.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+    <Reference Include="Microsoft.VisualStudio.Project, Version=1.0.0.0, Culture=neutral, PublicKeyToken=5a655c384b871b89, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Dev14\Src\CSharp\bin\Debug\Microsoft.VisualStudio.Project.dll</HintPath>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
     <Reference Include="Microsoft.VisualStudio.Shell.14.0, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.VisualStudio.Shell.Interop" />
     <Reference Include="Microsoft.VisualStudio.Shell.Interop.11.0, Version=11.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -106,10 +112,10 @@
     <Compile Include="Attributes\ResourcesCategoryAttribute.cs" />
     <Compile Include="Attributes\ResourcesDescriptionAttribute.cs" />
     <Compile Include="GeneralPropertyPage.cs" />
-    <Compile Include="MyCustomProjectAutomation.cs" />
-    <Compile Include="MyCustomProjectFactory.cs" />
-    <Compile Include="MyCustomProjectFileNode.cs" />
-    <Compile Include="MyCustomProjectNode.cs" />
+    <Compile Include="TeXExtensionsProjectAutomation.cs" />
+    <Compile Include="TeXProjectFactory.cs" />
+    <Compile Include="TeXProjectFileNode.cs" />
+    <Compile Include="TeXProjectNode.cs" />
     <Compile Include="GuidStrings.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="CustomProjectPackage.cs" />
@@ -117,15 +123,20 @@
     <None Include="extension.vsixmanifest">
       <SubType>Designer</SubType>
     </None>
-    <Content Include="Templates\ProjectItems\MyCustomProject\Class.cs">
+    <EmbeddedResource Include="Resources\icon.bmp" />
+    <Content Include="License.txt" />
+    <Content Include="Templates\ProjectItems\TeXProject\Plain.tex">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Templates\Projects\MyCustomProject\AssemblyInfo.cs">
+    <Content Include="Templates\Projects\TeXProject\Document.tex">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Templates\Projects\MyCustomProject\Program.cs">
+    <Content Include="Templates\Projects\TeXProject\TeX.texproj">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
+    <None Include="TeXExtensions.snk" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources.resx">
@@ -137,17 +148,11 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\MyCustomProjectImageList.bmp" />
+    <Content Include="Templates\Projects\TeXProject\tex.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <None Include="source.extension.vsixmanifest" />
-    <Content Include="Templates\Projects\MyCustomProject\MyCustomProject.ico">
-      <IncludeInVSIX>true</IncludeInVSIX>
-    </Content>
-    <Content Include="Key.snk">
-      <IncludeInVSIX>true</IncludeInVSIX>
-    </Content>
-    <Content Include="Templates\Projects\MyCustomProject\MyCustomProject.myproj">
-      <IncludeInVSIX>true</IncludeInVSIX>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0">
@@ -176,12 +181,7 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Dev14\Src\CSharp\Microsoft.VisualStudio.Project.csproj">
-      <Project>{cacb60a9-1e76-4f92-8831-b134a658c695}</Project>
-      <Name>Microsoft.VisualStudio.Project</Name>
-    </ProjectReference>
-  </ItemGroup>
+  <ItemGroup />
   <!-- This import the files which makes up the project base classes -->
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

@@ -15,17 +15,17 @@ namespace VsTeXProject
     /// within the hierarchy.
     /// </summary>
     [Guid("C02BD059-73EC-4B89-949A-859A631012CF")]
-    public class MyCustomProjectNode : ProjectNode
+    public class TeXProjectNode : ProjectNode
     {
         #region Enum for image list
-        internal enum MyCustomProjectImageName
+        internal enum TeXProjectImageName
         {
             Project = 0,
         }
         #endregion
 
         #region Constants
-        internal const string ProjectTypeName = "MyCustomProject";
+        internal const string ProjectTypeName = "VsTeXProject";
         #endregion
 
         #region Fields
@@ -37,18 +37,18 @@ namespace VsTeXProject
 
         #region Constructors
         /// <summary>
-        /// Initializes the <see cref="MyCustomProjectNode"/> class.
+        /// Initializes the <see cref="TeXProjectNode"/> class.
         /// </summary>
-        static MyCustomProjectNode()
+        static TeXProjectNode()
         {
-            imageList = Utilities.GetImageList(typeof(MyCustomProjectNode).Assembly.GetManifestResourceStream("VsTeXProject.Resources.MyCustomProjectImageList.bmp"));
+            imageList = Utilities.GetImageList(typeof(TeXProjectNode).Assembly.GetManifestResourceStream("VsTeXProject.Resources.icon.bmp"));
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MyCustomProjectNode"/> class.
+        /// Initializes a new instance of the <see cref="TeXProjectNode"/> class.
         /// </summary>
         /// <param name="package">Value of the project package for initialize internal package field.</param>
-        public MyCustomProjectNode(CustomProjectPackage package)
+        public TeXProjectNode(CustomProjectPackage package)
         {
             this.package = package;
 
@@ -96,7 +96,7 @@ namespace VsTeXProject
         /// <value>The project GUID.</value>
         public override Guid ProjectGuid
         {
-            get { return typeof(MyCustomProjectFactory).GUID; }
+            get { return typeof(TeXProjectFactory).GUID; }
         }
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace VsTeXProject
         {
             get
             {
-                return imageOffset + (int)MyCustomProjectImageName.Project;
+                return imageOffset + (int)TeXProjectImageName.Project;
             }
         }
 
@@ -127,7 +127,7 @@ namespace VsTeXProject
         /// <returns>The automation object</returns>
         public override object GetAutomationObject()
         {
-            return new OAMyCustomProject(this);
+            return new OaTeXProject(this);
         }
 
         /// <summary>
@@ -137,7 +137,7 @@ namespace VsTeXProject
         /// <returns></returns>
         public override FileNode CreateFileNode(ProjectElement item)
         {
-            MyCustomProjectFileNode node = new MyCustomProjectFileNode(this, item);
+            TeXProjectFileNode node = new TeXProjectFileNode(this, item);
 
             node.OleServiceProvider.AddService(typeof(EnvDTE.Project), new OleServiceProvider.ServiceCreatorCallback(this.CreateServices), false);
             node.OleServiceProvider.AddService(typeof(ProjectItem), node.ServiceCreator, false);

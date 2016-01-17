@@ -3,8 +3,7 @@ using System.ComponentModel;
 
 namespace VsTeXProject
 {
-    [AttributeUsage(AttributeTargets.All)]
-    internal sealed class ResourcesDescriptionAttribute : DescriptionAttribute
+    public sealed class ResourcesDescriptionAttribute : DescriptionAttribute
     {
         #region Fields
         private bool replaced;
