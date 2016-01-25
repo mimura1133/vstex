@@ -127,13 +127,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources.cs" />
     <Compile Include="TeXClassifier.cs" />
-    <Compile Include="TeXClassifierProvider.cs" />
+    <Compile Include="TeXClassifierFormat.cs" />
+    <Compile Include="TeXClassifierType.cs" />
+    <Compile Include="TeXContentTypeDefinitions.cs" />
     <Compile Include="TeXExtensionsProjectAutomation.cs" />
     <Compile Include="TeXProjectFactory.cs" />
     <Compile Include="TeXProjectFileNode.cs" />
     <Compile Include="TeXProjectNode.cs" />
-    <Compile Include="TeXTagger.cs" />
-    <Compile Include="TeXTaggerProvider.cs" />
     <None Include="Templates\ProjectItems\TeXProject\Plain.tex" />
     <ZipProject Include="Templates\Projects\TeXProject\Document.tex" />
     <ZipProject Include="Templates\Projects\TeXProject\TeXProject.texproj" />
