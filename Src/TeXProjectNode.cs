@@ -4,9 +4,9 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using EnvDTE;
-using Microsoft.VisualStudio.Project;
+using VsTeXProject.VisualStudio.Project;
 using VSLangProj;
-using Microsoft.VisualStudio.Project.Automation;
+using VsTeXProject.VisualStudio.Project.Automation;
 
 namespace VsTeXProject
 {
@@ -182,10 +182,9 @@ namespace VsTeXProject
 
             // The class name is based on the new file name
             string className = Path.GetFileNameWithoutExtension(target);
-            string namespce = this.FileTemplateProcessor.GetFileNamespace(target, this);
+            this.FileTemplateProcessor.GetFileNamespace(target, this);
 
-            this.FileTemplateProcessor.AddReplace("%className%", className);
-            this.FileTemplateProcessor.AddReplace("%namespace%", namespce);
+            this.FileTemplateProcessor.AddReplace("$safeprojectname$", className);
             try
             {
                 this.FileTemplateProcessor.UntokenFile(source, target);

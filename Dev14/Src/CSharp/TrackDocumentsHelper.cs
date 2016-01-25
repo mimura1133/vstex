@@ -51,7 +51,7 @@ using System.Diagnostics;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// Used by a project to query the environment for permission to add, remove, or rename a file or directory in a solution

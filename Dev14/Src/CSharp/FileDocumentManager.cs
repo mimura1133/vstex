@@ -53,7 +53,7 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 using IOleServiceProvider = Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// This class handles opening, saving of file items in the hierarchy.

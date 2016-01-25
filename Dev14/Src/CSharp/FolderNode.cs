@@ -60,7 +60,7 @@ using OleConstants = Microsoft.VisualStudio.OLE.Interop.Constants;
 using VsCommands = Microsoft.VisualStudio.VSConstants.VSStd97CmdID;
 using VsCommands2K = Microsoft.VisualStudio.VSConstants.VSStd2KCmdID;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     [CLSCompliant(false)]
     [ComVisible(true)]

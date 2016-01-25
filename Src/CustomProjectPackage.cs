@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-using Microsoft.VisualStudio.Project;
+using VsTeXProject.VisualStudio.Project;
 using Microsoft.VisualStudio.Shell;
 
 namespace VsTeXProject

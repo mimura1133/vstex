@@ -52,7 +52,7 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 using IOleServiceProvider = Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     class ProjectDesignerDocumentManager : DocumentManager
     {

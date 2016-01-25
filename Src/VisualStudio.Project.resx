@@ -150,7 +150,7 @@
     <comment>Target platform drop down option</comment>
   </data>
   <data name="Compile" xml:space="preserve">
-    <value>Compile</value>
+    <value>Compile.</value>
     <comment>Build Action - drop down option</comment>
   </data>
   <data name="ConfirmExtensionChange" xml:space="preserve">
@@ -537,5 +537,20 @@ Are you sure you want to change the Target Framework for this project?</value>
   </data>
   <data name="ReloadPromptOnTargetFxChangedCaption" xml:space="preserve">
     <value>Target Framework Change</value>
+  </data>
+  <data name="PdfDocument" xml:space="preserve">
+    <value>PDF Document</value>
+  </data>
+  <data name="Picture" xml:space="preserve">
+    <value>Picture File (generate xbb file)</value>
+  </data>
+  <data name="LaTeX" xml:space="preserve">
+    <value>latex</value>
+  </data>
+  <data name="pdfTeX" xml:space="preserve">
+    <value>pdftex</value>
+  </data>
+  <data name="pLaTeX" xml:space="preserve">
+    <value>platex</value>
   </data>
 </root>

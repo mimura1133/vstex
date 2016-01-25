@@ -63,6 +63,7 @@ using EnvDTE;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -75,7 +76,7 @@ using OleConstants = Microsoft.VisualStudio.OLE.Interop.Constants;
 using VsCommands = Microsoft.VisualStudio.VSConstants.VSStd97CmdID;
 using VsCommands2K = Microsoft.VisualStudio.VSConstants.VSStd2KCmdID;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// Manages the persistent state of the project (References, options, files, etc.) and deals with user interaction via a GUI in the form a hierarchy.
@@ -659,7 +660,7 @@ namespace Microsoft.VisualStudio.Project
             {
                 if (null == imageHandler)
                 {
-                    imageHandler = new ImageHandler(typeof(ProjectNode).Assembly.GetManifestResourceStream("Microsoft.VisualStudio.Project.Resources.imagelis.bmp"));
+                    imageHandler = new ImageHandler(typeof(ProjectNode).Assembly.GetManifestResourceStream("VsTeXProject.VisualStudio.Project.Resources.imagelis.bmp"));
                 }
                 return imageHandler;
             }
@@ -2893,7 +2894,7 @@ namespace Microsoft.VisualStudio.Project
             }
 
             // Do some name validation
-            if (Microsoft.VisualStudio.Project.Utilities.ContainsInvalidFileNameChars(newFile))
+            if (VsTeXProject.VisualStudio.Project.Utilities.ContainsInvalidFileNameChars(newFile))
             {
                 throw new InvalidOperationException(SR.GetString(SR.ErrorInvalidProjectName, CultureInfo.CurrentUICulture));
             }
@@ -2976,9 +2977,8 @@ namespace Microsoft.VisualStudio.Project
         protected virtual bool IsItemTypeFileType(string type)
         {
             if (String.Compare(type, BuildAction.Compile.ToString(), StringComparison.OrdinalIgnoreCase) == 0
-                || String.Compare(type, BuildAction.Content.ToString(), StringComparison.OrdinalIgnoreCase) == 0
-                || String.Compare(type, BuildAction.EmbeddedResource.ToString(), StringComparison.OrdinalIgnoreCase) == 0
-                || String.Compare(type, BuildAction.None.ToString(), StringComparison.OrdinalIgnoreCase) == 0)
+                || String.Compare(type, BuildAction.Picture.ToString(), StringComparison.OrdinalIgnoreCase) == 0
+                || String.Compare(type, BuildAction.Content.ToString(), StringComparison.OrdinalIgnoreCase) == 0)
                 return true;
 
             // we don't know about this type, so ignore it.

@@ -55,7 +55,7 @@ using System.Threading;
 using System.ComponentModel;
 using System.Security.Permissions;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     [AttributeUsage(AttributeTargets.All)]
     internal sealed class SRDescriptionAttribute : DescriptionAttribute
@@ -210,6 +210,11 @@ namespace Microsoft.VisualStudio.Project
         internal const string CannotLoadUnknownTargetFrameworkProject = "CannotLoadUnknownTargetFrameworkProject";
         internal const string ReloadPromptOnTargetFxChanged = "ReloadPromptOnTargetFxChanged";
         internal const string ReloadPromptOnTargetFxChangedCaption = "ReloadPromptOnTargetFxChangedCaption";
+        internal const string pdf = "PdfDocument";
+        internal const string Picture = "Picture";
+        internal const string pLaTeX = "platex";
+        internal const string LaTeX = "latex";
+        internal const string pdfTeX = "pdftex";
 
         static SR loader;
         ResourceManager resources;
@@ -230,7 +235,7 @@ namespace Microsoft.VisualStudio.Project
 
         internal SR()
         {
-            resources = new System.Resources.ResourceManager("Microsoft.VisualStudio.Project", this.GetType().Assembly);
+            resources = new System.Resources.ResourceManager("VsTeXProject.VisualStudio.Project", this.GetType().Assembly);
         }
 
         private static SR GetLoader()
@@ -251,7 +256,7 @@ namespace Microsoft.VisualStudio.Project
 
         private static CultureInfo Culture
         {
-            get { return null/*use ResourceManager default, CultureInfo.CurrentUICulture*/; }
+            get { return null; }
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]

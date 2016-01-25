@@ -8,8 +8,8 @@
     <ProjectGuid>{CACB60A9-1E76-4F92-8831-B134A658C695}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Microsoft.VisualStudio.Project</RootNamespace>
-    <AssemblyName>Microsoft.VisualStudio.Project</AssemblyName>
+    <RootNamespace>VsTeXProject.VisualStudio.Project</RootNamespace>
+    <AssemblyName>VsTeXProject.VisualStudio.Project</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SignAssembly>true</SignAssembly>
@@ -156,7 +156,7 @@
     <Compile Include="Interfaces.cs" />
     <Compile Include="LocalizableProperties.cs" />
     <Compile Include="UIThread.cs" />
-    <Compile Include="VisualStudio.Project.cs" />
+    <Compile Include="Resources.cs" />
     <Compile Include="Misc\ConnectionPointContainer.cs" />
     <Compile Include="Misc\ExternDll.cs" />
     <Compile Include="Misc\NativeMethods.cs" />
@@ -215,8 +215,8 @@
     <None Include="Key.snk" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="VisualStudio.Project.resx">
-      <LogicalName>Microsoft.VisualStudio.Project.resources</LogicalName>
+    <EmbeddedResource Include="Resources.resx">
+      <LogicalName>VsTeXProject.VisualStudio.Project.resources</LogicalName>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\imagelis.bmp" />

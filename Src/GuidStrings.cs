@@ -1,5 +1,5 @@
 using System;
-using Microsoft.VisualStudio.Project;
+using VsTeXProject.VisualStudio.Project;
 namespace VsTeXProject
 {
     public static class GuidStrings

@@ -49,7 +49,7 @@ a particular purpose and non-infringement.
 using System;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     internal static class UnsafeNativeMethods
     {

@@ -54,7 +54,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using ShellConstants = Microsoft.VisualStudio.Shell.Interop.Constants;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
 
     [CLSCompliant(false)]

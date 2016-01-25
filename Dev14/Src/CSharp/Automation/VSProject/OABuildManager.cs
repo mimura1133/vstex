@@ -51,7 +51,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using VSLangProj;
 using Microsoft.VisualStudio;
 
-namespace Microsoft.VisualStudio.Project.Automation
+namespace VsTeXProject.VisualStudio.Project.Automation
 {
     public class OABuildManager : ConnectionPointContainer,
                                     IEventSource<_dispBuildManagerEvents>,

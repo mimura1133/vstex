@@ -50,7 +50,7 @@ using System;
 using System.Collections;
 using System.ComponentModel;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// The purpose of DesignPropertyDescriptor is to allow us to customize the

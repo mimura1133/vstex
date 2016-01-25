@@ -55,7 +55,7 @@ using System.Runtime.Versioning;
 using Microsoft.VisualStudio.Shell.Interop;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     public class OutputTypeConverter : EnumConverter
     {
@@ -78,9 +78,7 @@ namespace Microsoft.VisualStudio.Project
 
             if(str != null)
             {
-                if(str == SR.GetString(SR.Exe, culture)) return OutputType.Exe;
-                if(str == SR.GetString(SR.Library, culture)) return OutputType.Library;
-                if(str == SR.GetString(SR.WinExe, culture)) return OutputType.WinExe;
+                if(str == SR.GetString(SR.pdf, culture)) return OutputType.pdf;
             }
 
             return base.ConvertFrom(context, culture, value);
@@ -99,7 +97,7 @@ namespace Microsoft.VisualStudio.Project
                 }
                 else
                 {
-                    result = SR.GetString(OutputType.Library.ToString(), culture);
+                    result = SR.GetString(OutputType.pdf.ToString(), culture);
                 }
 
                 if(result != null) return result;
@@ -115,7 +113,7 @@ namespace Microsoft.VisualStudio.Project
 
         public override System.ComponentModel.TypeConverter.StandardValuesCollection GetStandardValues(System.ComponentModel.ITypeDescriptorContext context)
         {
-            return new StandardValuesCollection(new OutputType[] { OutputType.Exe, OutputType.Library, OutputType.WinExe });
+            return new StandardValuesCollection(new OutputType[] { OutputType.pdf });
         }
     }
 
@@ -203,18 +201,16 @@ namespace Microsoft.VisualStudio.Project
         {
             string str = value as string;
 
-            if(str != null)
+            if (str != null)
             {
-                if(str == SR.GetString(SR.Compile, culture)) return BuildAction.Compile;
+                if (str == SR.GetString(SR.Compile, culture)) return BuildAction.Compile;
 
-                if(str == SR.GetString(SR.Content, culture)) return BuildAction.Content;
+                if (str == SR.GetString(SR.Picture, culture)) return BuildAction.Picture;
 
-                if(str == SR.GetString(SR.EmbeddedResource, culture)) return BuildAction.EmbeddedResource;
-
-                if(str == SR.GetString(SR.None, culture)) return BuildAction.None;
+                if (str == SR.GetString(SR.Content, culture)) return BuildAction.Content;
             }
 
-            return base.ConvertFrom(context, culture, value);
+            return BuildAction.Content;
         }
 
         public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
@@ -232,7 +228,7 @@ namespace Microsoft.VisualStudio.Project
                 }
                 else
                 {
-                    result = SR.GetString(BuildAction.None.ToString(), culture);
+                    result = SR.GetString(BuildAction.Content.ToString(), culture);
                 }
 
                 if(result != null) return result;
@@ -248,7 +244,7 @@ namespace Microsoft.VisualStudio.Project
 
         public override System.ComponentModel.TypeConverter.StandardValuesCollection GetStandardValues(System.ComponentModel.ITypeDescriptorContext context)
         {
-            return new StandardValuesCollection(new BuildAction[] { BuildAction.Compile, BuildAction.Content, BuildAction.EmbeddedResource, BuildAction.None });
+            return new StandardValuesCollection(new BuildAction[] { BuildAction.Compile, BuildAction.Picture, BuildAction.Content });
         }
     }
 
@@ -310,6 +306,68 @@ namespace Microsoft.VisualStudio.Project
             return new StandardValuesCollection(
                 frameworks.Cast<string>().Select(fx => new FrameworkName(fx)).ToArray()
             );
+        }
+    }
+
+    public class TeXProcessorConverter : EnumConverter
+    {
+        public TeXProcessorConverter()
+            : base(typeof(TeXProcessor))
+        {
+
+        }
+
+        public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+        {
+            if (sourceType == typeof(string)) return true;
+
+            return base.CanConvertFrom(context, sourceType);
+        }
+
+        public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
+        {
+            string str = value as string;
+
+            if (str != null)
+            {
+                if (str == SR.GetString(SR.pLaTeX, culture)) return TeXProcessor.platex;
+                if (str == SR.GetString(SR.LaTeX, culture)) return TeXProcessor.latex;
+                if (str == SR.GetString(SR.pdfTeX, culture)) return TeXProcessor.pdftex;
+            }
+
+            return base.ConvertFrom(context, culture, value);
+        }
+
+        public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
+        {
+            if (destinationType == typeof(string))
+            {
+                string result = null;
+                // In some cases if multiple nodes are selected the windows form engine
+                // calls us with a null value if the selected node's property values are not equal
+                if (value != null)
+                {
+                    result = SR.GetString(((TeXProcessor)value).ToString(), culture);
+                }
+                else
+                {
+                    result = SR.GetString(TeXProcessor.platex.ToString(), culture);
+                }
+
+                if (result != null) return result;
+            }
+
+            return base.ConvertTo(context, culture, value, destinationType);
+        }
+
+        public override bool GetStandardValuesSupported(System.ComponentModel.ITypeDescriptorContext context)
+        {
+            return true;
+        }
+
+        public override System.ComponentModel.TypeConverter.StandardValuesCollection GetStandardValues(System.ComponentModel.ITypeDescriptorContext context)
+        {
+            return new StandardValuesCollection(new TeXProcessor[] { TeXProcessor.platex,TeXProcessor.latex, TeXProcessor.pdftex });
         }
     }
 }

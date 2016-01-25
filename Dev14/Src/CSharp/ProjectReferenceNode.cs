@@ -55,7 +55,7 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     [CLSCompliant(false), ComVisible(true)]
     public class ProjectReferenceNode : ReferenceNode

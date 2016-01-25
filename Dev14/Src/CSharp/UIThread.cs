@@ -46,7 +46,7 @@ a particular purpose and non-infringement.
 
 ********************************************************************************************/
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     using Microsoft.VisualStudio.Shell;
     using System;

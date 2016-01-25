@@ -49,7 +49,7 @@ a particular purpose and non-infringement.
 using System;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.VisualStudio.Project.Automation
+namespace VsTeXProject.VisualStudio.Project.Automation
 {
     /// <summary>
     /// This object defines a so called null object that is returned as instead of null. This is because callers in VSCore usually crash if a null propery is returned for them.

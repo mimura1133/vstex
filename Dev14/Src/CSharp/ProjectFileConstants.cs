@@ -48,7 +48,7 @@ a particular purpose and non-infringement.
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// Defines the constant strings for various msbuild targets

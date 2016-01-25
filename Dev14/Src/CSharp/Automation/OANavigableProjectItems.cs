@@ -52,7 +52,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.VisualStudio.Project.Automation
+namespace VsTeXProject.VisualStudio.Project.Automation
 {
     /// <summary>
     /// This can navigate a collection object only (partial implementation of ProjectItems interface)

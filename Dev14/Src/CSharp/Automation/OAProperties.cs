@@ -55,7 +55,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.VisualStudio.Project.Automation
+namespace VsTeXProject.VisualStudio.Project.Automation
 {
     /// <summary>
     /// Contains all of the properties of a given object that are contained in a generic collection of properties.
@@ -191,9 +191,13 @@ namespace Microsoft.VisualStudio.Project.Automation
             if(index is string)
             {
                 string indexAsString = (string)index;
-                if(this.properties.ContainsKey(indexAsString))
+                if (this.properties.ContainsKey(indexAsString))
                 {
-                    return (EnvDTE.Property)this.properties[indexAsString];
+                    return (EnvDTE.Property) this.properties[indexAsString];
+                }
+                else
+                {
+                    return new OANullProperty(null);
                 }
             }
             else if(index is int)

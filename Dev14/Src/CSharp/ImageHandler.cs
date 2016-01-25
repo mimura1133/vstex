@@ -53,7 +53,7 @@ using System.IO;
 using System.Windows.Forms;
 using Microsoft.VisualStudio;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     public class ImageHandler : IDisposable
     {

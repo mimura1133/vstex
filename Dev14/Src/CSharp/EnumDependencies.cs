@@ -51,7 +51,7 @@ using System.Collections.Generic;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     [CLSCompliant(false)]
     public class EnumDependencies : IVsEnumDependencies

@@ -48,7 +48,7 @@ a particular purpose and non-infringement.
 
 using System;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     public partial class ProjectNode
     {

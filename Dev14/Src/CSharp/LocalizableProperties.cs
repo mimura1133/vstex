@@ -51,7 +51,7 @@ using System.Collections;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// Enables a managed object to expose properties and attributes for COM objects.

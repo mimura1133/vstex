@@ -51,7 +51,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     #region structures
     [StructLayoutAttribute(LayoutKind.Sequential)]
@@ -82,20 +82,18 @@ namespace Microsoft.VisualStudio.Project
     [PropertyPageTypeConverterAttribute(typeof(OutputTypeConverter))]
     public enum OutputType
     {
-        /// <summary>
-        /// The output type is a class library.
-        /// </summary>
-        Library,
+        pdf
+    }
 
-        /// <summary>
-        /// The output type is a windows executable.
-        /// </summary>
-        WinExe,
-
-        /// <summary>
-        /// The output type is an executable.
-        /// </summary>
-        Exe
+    /// <summary>
+    /// TeX Processor.
+    /// </summary>
+    [PropertyPageTypeConverterAttribute(typeof(TeXProcessorConverter))]
+    public enum TeXProcessor
+    {
+        platex,
+        latex,
+        pdftex
     }
 
     /// <summary>
@@ -116,10 +114,9 @@ namespace Microsoft.VisualStudio.Project
     [PropertyPageTypeConverterAttribute(typeof(BuildActionConverter))]
     public enum BuildAction
     {
-        None,
         Compile,
-        Content,
-        EmbeddedResource
+        Picture,
+        Content
     }
 
     /// <summary>

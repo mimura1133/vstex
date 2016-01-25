@@ -67,7 +67,7 @@ using Microsoft.Build.Construction;
     a) undocumented
     b) not really wise in the managed world
 */
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     [CLSCompliant(false)]
     [ComVisible(true)]

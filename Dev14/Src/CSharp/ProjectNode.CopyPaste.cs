@@ -62,7 +62,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using IOleDataObject = Microsoft.VisualStudio.OLE.Interop.IDataObject;
 using OleConstants = Microsoft.VisualStudio.OLE.Interop.Constants;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// Manages the CopyPaste and Drag and Drop scenarios for a Project.

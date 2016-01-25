@@ -51,7 +51,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using EnvDTE;
 
-namespace Microsoft.VisualStudio.Project.Automation
+namespace VsTeXProject.VisualStudio.Project.Automation
 {
     /// <summary>
     /// Represents an automation object for a folder in a project

@@ -1,2 +1,2 @@
-using Microsoft.VisualStudio.Project;
+using VsTeXProject.VisualStudio.Project;
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1017:MarkAssembliesWithComVisible")]

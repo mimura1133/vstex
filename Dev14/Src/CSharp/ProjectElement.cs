@@ -56,7 +56,7 @@ using Microsoft.VisualStudio;
 using MSBuild = Microsoft.Build.Evaluation;
 using Microsoft.Build.Evaluation;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
 
     /// <summary>

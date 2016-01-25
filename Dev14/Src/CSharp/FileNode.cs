@@ -60,7 +60,7 @@ using OleConstants = Microsoft.VisualStudio.OLE.Interop.Constants;
 using VsCommands = Microsoft.VisualStudio.VSConstants.VSStd97CmdID;
 using VsCommands2K = Microsoft.VisualStudio.VSConstants.VSStd2KCmdID;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     [CLSCompliant(false)]
     [ComVisible(true)]
@@ -1064,16 +1064,6 @@ namespace Microsoft.VisualStudio.Project
         /// <param name="sender">FileNode sending it</param>
         /// <param name="e">Node event args</param>
         internal virtual void OnCustomToolChanged(object sender, HierarchyNodeEventArgs e)
-        {
-            this.RunGenerator();
-        }
-
-        /// <summary>
-        /// Event handler for the Custom tool namespce property changes
-        /// </summary>
-        /// <param name="sender">FileNode sending it</param>
-        /// <param name="e">Node event args</param>
-        internal virtual void OnCustomToolNameSpaceChanged(object sender, HierarchyNodeEventArgs e)
         {
             this.RunGenerator();
         }

@@ -62,7 +62,7 @@ using MSBuild = Microsoft.Build.Evaluation;
 using MSBuildExecution = Microsoft.Build.Execution;
 using MSBuildConstruction = Microsoft.Build.Construction;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     [CLSCompliant(false), ComVisible(true)]
     public class ProjectConfig :

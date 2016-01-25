@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
-using Microsoft.VisualStudio.Project;
-using Microsoft.VisualStudio.Project.Automation;
+using VsTeXProject.VisualStudio.Project;
+using VsTeXProject.VisualStudio.Project.Automation;
 
 namespace VsTeXProject
 {

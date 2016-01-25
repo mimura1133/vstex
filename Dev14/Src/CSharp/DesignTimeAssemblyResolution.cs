@@ -55,8 +55,9 @@ using Microsoft.Build.Utilities;
 using Microsoft.Build.Execution;
 using System.IO;
 using System.Globalization;
+using Microsoft.VisualStudio;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     public class DesignTimeAssemblyResolution
     {

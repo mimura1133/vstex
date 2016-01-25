@@ -52,7 +52,7 @@ using System.Runtime.InteropServices;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace Microsoft.VisualStudio.Project.Automation
+namespace VsTeXProject.VisualStudio.Project.Automation
 {
     [ComVisible(true), CLSCompliant(false)]
     public class OAProjectItem<T> : EnvDTE.ProjectItem

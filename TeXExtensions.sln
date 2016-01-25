@@ -3,8 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeXExtensions", "Src\TeXExtensions.csproj", "{F4ADEBDB-CD20-4532-B4E3-FE7424F5369C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CACB60A9-1E76-4F92-8831-B134A658C695} = {CACB60A9-1E76-4F92-8831-B134A658C695}
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.VisualStudio.Project", "Dev14\Src\CSharp\Microsoft.VisualStudio.Project.csproj", "{CACB60A9-1E76-4F92-8831-B134A658C695}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeXExtensions.VisualStudio.Project", "Dev14\Src\CSharp\TeXExtensions.VisualStudio.Project.csproj", "{CACB60A9-1E76-4F92-8831-B134A658C695}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -48,7 +48,7 @@ a particular purpose and non-infringement.
 
 using System.Diagnostics;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     internal class CCITracing
     {

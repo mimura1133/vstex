@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Globalization;
 using System.Resources;
 using System.Threading;
-using Microsoft.VisualStudio.Project;
+using VsTeXProject.VisualStudio.Project;
 
 namespace VsTeXProject
 {
@@ -36,6 +36,8 @@ namespace VsTeXProject
         internal const string TargetFrameworkMoniker = "TargetFrameworkMoniker";
         internal const string TargetFrameworkMonikerDescription = "TargetFrameworkMonikerDescription";
         internal const string NestedProjectFileAssemblyFilter = "NestedProjectFileAssemblyFilter";
+        internal const string TeXProcessor = "TeXProcessor";
+        internal const string TeXProcessorDescription = "TeXProcessorDescription";
         //internal const string MsgFailedToLoadTemplateFile = "Failed to add template file to project";
         #endregion Constants
 

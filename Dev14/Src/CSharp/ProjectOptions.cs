@@ -50,7 +50,7 @@ using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Versioning;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     public class ProjectOptions : System.CodeDom.Compiler.CompilerParameters
     {

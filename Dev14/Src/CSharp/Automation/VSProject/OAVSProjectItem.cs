@@ -52,7 +52,7 @@ using System.Runtime.InteropServices;
 using EnvDTE;
 using VSLangProj;
 
-namespace Microsoft.VisualStudio.Project.Automation
+namespace VsTeXProject.VisualStudio.Project.Automation
 {
     /// <summary>
     /// Represents a language-specific project item

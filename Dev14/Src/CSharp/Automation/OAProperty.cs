@@ -50,7 +50,7 @@ using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.VisualStudio.Project.Automation
+namespace VsTeXProject.VisualStudio.Project.Automation
 {
     [CLSCompliant(false), ComVisible(true)]
     public class OAProperty : EnvDTE.Property

@@ -49,7 +49,7 @@ a particular purpose and non-infringement.
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// Defines menu commands guids and menu command id's

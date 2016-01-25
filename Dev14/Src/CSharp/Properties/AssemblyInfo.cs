@@ -52,12 +52,12 @@ using System.Runtime.InteropServices;
 using System.Security.Permissions;
 using System.Resources;
 
-[assembly: AssemblyTitle("Microsoft.VisualStudio.Project")]
-[assembly: AssemblyDescription("MPF Implementation of VS Projects")]
+[assembly: AssemblyTitle("VsTeXProject.VisualStudio.Project")]
+[assembly: AssemblyDescription("MPF Implementation of VS Projects for TeX Extensions.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Microsoft")]
-[assembly: AssemblyProduct("Microsoft.VisualStudio.Project")]
-[assembly: AssemblyCopyright("Copyright © Microsoft 2009")]
+[assembly: AssemblyCompany("Mimura")]
+[assembly: AssemblyProduct("VsTeXProject.VisualStudio.Project")]
+[assembly: AssemblyCopyright("Copyright © Mimura 2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

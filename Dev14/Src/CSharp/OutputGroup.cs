@@ -56,7 +56,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using MSBuild = Microsoft.Build.Evaluation;
 using MSBuildExecution = Microsoft.Build.Execution;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// Allows projects to group outputs according to usage.
@@ -141,7 +141,6 @@ namespace Microsoft.VisualStudio.Project
             {
                 bool succeeded = false;
                 project.BuildTarget(generateDependencyList, out succeeded);
-                Debug.Assert(succeeded, "Failed to build target: " + generateDependencyList);
             }
 
             // Rebuild the content of our list of output

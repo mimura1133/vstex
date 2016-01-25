@@ -54,7 +54,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// Replacement type

@@ -61,7 +61,7 @@ using MSBuildExecution = Microsoft.Build.Execution;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     [CLSCompliant(false)]
     [ComVisible(true)]

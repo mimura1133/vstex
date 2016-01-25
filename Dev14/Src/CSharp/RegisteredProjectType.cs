@@ -51,7 +51,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.Win32;
 using VSRegistry = Microsoft.VisualStudio.Shell.VSRegistry;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// Gets registry settings from for a project.

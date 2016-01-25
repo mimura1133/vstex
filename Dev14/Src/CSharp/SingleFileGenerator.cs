@@ -56,7 +56,7 @@ using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.TextManager.Interop;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// Provides support for single file generator.
@@ -148,8 +148,6 @@ namespace Microsoft.VisualStudio.Project
                 return;
             }
 
-            string customToolNamespace = nodeproperties.CustomToolNamespace;
-
             try
             {
                 if(!this.runningGenerator)
@@ -172,12 +170,6 @@ namespace Microsoft.VisualStudio.Project
                     if(objWithSite != null)
                     {
                         objWithSite.SetSite(fileNode.OleServiceProvider);
-                    }
-
-                    //Determine the namespace
-                    if(string.IsNullOrEmpty(customToolNamespace))
-                    {
-                        customToolNamespace = this.ComputeNamespace(moniker);
                     }
 
                     //Run the generator
@@ -221,7 +213,7 @@ namespace Microsoft.VisualStudio.Project
                     IVsTextStream stream;
                     string inputFileContents = this.GetBufferContents(moniker, out stream);
 
-                    ErrorHandler.ThrowOnFailure(generator.Generate(moniker, inputFileContents, customToolNamespace, output, out outPutSize, this));
+                    ErrorHandler.ThrowOnFailure(generator.Generate(moniker, inputFileContents, "", output, out outPutSize, this));
                     byte[] data = new byte[outPutSize];
 
                     if(output[0] != IntPtr.Zero)

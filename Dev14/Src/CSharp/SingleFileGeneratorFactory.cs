@@ -55,7 +55,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.Win32;
 using VSRegistry = Microsoft.VisualStudio.Shell.VSRegistry;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
     /// Provides implementation IVsSingleFileGeneratorFactory for

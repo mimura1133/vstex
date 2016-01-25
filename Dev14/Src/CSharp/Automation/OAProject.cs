@@ -54,7 +54,7 @@ using EnvDTE;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 
-namespace Microsoft.VisualStudio.Project.Automation
+namespace VsTeXProject.VisualStudio.Project.Automation
 {
     [ComVisible(true), CLSCompliant(false)]
     public class OAProject : EnvDTE.Project, EnvDTE.ISupportVSProperties

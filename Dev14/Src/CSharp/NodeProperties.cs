@@ -59,7 +59,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using IOleServiceProvider = Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
 
-namespace Microsoft.VisualStudio.Project
+namespace VsTeXProject.VisualStudio.Project
 {
 
     /// <summary>
@@ -355,7 +355,7 @@ namespace Microsoft.VisualStudio.Project
                 string value = this.Node.ItemNode.ItemName;
                 if(value == null || value.Length == 0)
                 {
-                    return BuildAction.None;
+                    return BuildAction.Content;
                 }
                 return (BuildAction)Enum.Parse(typeof(BuildAction), value);
             }
@@ -433,7 +433,7 @@ namespace Microsoft.VisualStudio.Project
                 string value = this.Node.ItemNode.ItemName;
                 if(value == null || value.Length == 0)
                 {
-                    return BuildAction.None;
+                    return BuildAction.Content;
                 }
                 return (BuildAction)Enum.Parse(typeof(BuildAction), value);
             }
@@ -487,7 +487,6 @@ namespace Microsoft.VisualStudio.Project
     {
         #region fields
         private EventHandler<HierarchyNodeEventArgs> onCustomToolChanged;
-        private EventHandler<HierarchyNodeEventArgs> onCustomToolNameSpaceChanged;
         #endregion
 
         #region custom tool events
@@ -497,11 +496,6 @@ namespace Microsoft.VisualStudio.Project
             remove { onCustomToolChanged -= value; }
         }
 
-        internal event EventHandler<HierarchyNodeEventArgs> OnCustomToolNameSpaceChanged
-        {
-            add { onCustomToolNameSpaceChanged += value; }
-            remove { onCustomToolNameSpaceChanged -= value; }
-        }
 
         #endregion
 
@@ -529,28 +523,6 @@ namespace Microsoft.VisualStudio.Project
             }
         }
 
-        [SRCategoryAttribute(VisualStudio.Project.SR.Advanced)]
-        [LocDisplayName(SR.CustomToolNamespace)]
-        [SRDescriptionAttribute(SR.CustomToolNamespaceDescription)]
-        public virtual string CustomToolNamespace
-        {
-            get
-            {
-                return this.Node.ItemNode.GetMetadata(ProjectFileConstants.CustomToolNamespace);
-            }
-            set
-            {
-                if (CustomToolNamespace != value)
-                {
-                    this.Node.ItemNode.SetMetadata(ProjectFileConstants.CustomToolNamespace, value != String.Empty ? value : null);
-                    HierarchyNodeEventArgs args = new HierarchyNodeEventArgs(this.Node);
-                    if (onCustomToolNameSpaceChanged != null)
-                    {
-                        onCustomToolNameSpaceChanged(this.Node, args);
-                    }
-                }
-            }
-        }
         #endregion
 
         #region ctors
