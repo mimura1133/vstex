@@ -47,13 +47,11 @@ a particular purpose and non-infringement.
 ********************************************************************************************/
 
 using System;
-using System.Reflection;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Resources;
-using System.Text;
 using System.Threading;
-using System.ComponentModel;
-using System.Security.Permissions;
 
 namespace VsTeXProject.VisualStudio.Project
 {
@@ -71,7 +69,7 @@ namespace VsTeXProject.VisualStudio.Project
         {
             get
             {
-                if(!replaced)
+                if (!replaced)
                 {
                     replaced = true;
                     DescriptionValue = SR.GetString(base.Description, CultureInfo.CurrentUICulture);
@@ -84,7 +82,6 @@ namespace VsTeXProject.VisualStudio.Project
     [AttributeUsage(AttributeTargets.All)]
     internal sealed class SRCategoryAttribute : CategoryAttribute
     {
-
         public SRCategoryAttribute(string category)
             : base(category)
         {
@@ -95,6 +92,7 @@ namespace VsTeXProject.VisualStudio.Project
             return SR.GetString(value, CultureInfo.CurrentUICulture);
         }
     }
+
     internal sealed class SR
     {
         internal const string AddReferenceDialogTitle = "AddReferenceDialogTitle";
@@ -111,7 +109,6 @@ namespace VsTeXProject.VisualStudio.Project
         internal const string CancelQueryEdit = "CancelQueryEdit";
         internal const string CannotAddFileThatIsOpenInEditor = "CannotAddFileThatIsOpenInEditor";
         internal const string CanNotSaveFileNotOpeneInEditor = "CanNotSaveFileNotOpeneInEditor";
-        internal const string cli1 = "cli1";
         internal const string Compile = "Compile";
         internal const string ConfirmExtensionChange = "ConfirmExtensionChange";
         internal const string Content = "Content";
@@ -141,7 +138,6 @@ namespace VsTeXProject.VisualStudio.Project
         internal const string ErrorReferenceCouldNotBeAdded = "ErrorReferenceCouldNotBeAdded";
         internal const string ErrorMsBuildRegistration = "ErrorMsBuildRegistration";
         internal const string ErrorSaving = "ErrorSaving";
-        internal const string Exe = "Exe";
         internal const string ExpectedObjectOfType = "ExpectedObjectOfType";
         internal const string FailedToGetService = "FailedToGetService";
         internal const string FailedToRetrieveProperties = "FailedToRetrieveProperties";
@@ -197,16 +193,13 @@ namespace VsTeXProject.VisualStudio.Project
         internal const string RefName = "RefName";
         internal const string RefNameDescription = "RefNameDescription";
         internal const string RenameFolder = "RenameFolder";
-        internal const string RTL = "RTL";
         internal const string SaveCaption = "SaveCaption";
         internal const string SaveModifiedDocuments = "SaveModifiedDocuments";
         internal const string SaveOfProjectFileOutsideCurrentDirectory = "SaveOfProjectFileOutsideCurrentDirectory";
         internal const string StandardEditorViewError = "StandardEditorViewError";
         internal const string Settings = "Settings";
-        internal const string URL = "URL";
         internal const string UseOfDeletedItemError = "UseOfDeletedItemError";
         internal const string Warning = "Warning";
-        internal const string WinExe = "WinExe";
         internal const string CannotLoadUnknownTargetFrameworkProject = "CannotLoadUnknownTargetFrameworkProject";
         internal const string ReloadPromptOnTargetFxChanged = "ReloadPromptOnTargetFxChanged";
         internal const string ReloadPromptOnTargetFxChangedCaption = "ReloadPromptOnTargetFxChangedCaption";
@@ -216,35 +209,47 @@ namespace VsTeXProject.VisualStudio.Project
         internal const string LaTeX = "latex";
         internal const string pdfTeX = "pdftex";
 
-        static SR loader;
-        ResourceManager resources;
+        private static SR loader;
 
-        private static Object s_InternalSyncObject;
-        private static Object InternalSyncObject
+        private static object s_InternalSyncObject;
+        private readonly ResourceManager resources;
+
+        internal SR()
+        {
+            resources = new ResourceManager("VsTeXProject.VisualStudio.Project", GetType().Assembly);
+        }
+
+        private static object InternalSyncObject
         {
             get
             {
-                if(s_InternalSyncObject == null)
+                if (s_InternalSyncObject == null)
                 {
-                    Object o = new Object();
+                    var o = new object();
                     Interlocked.CompareExchange(ref s_InternalSyncObject, o, null);
                 }
                 return s_InternalSyncObject;
             }
         }
 
-        internal SR()
+        private static CultureInfo Culture
         {
-            resources = new System.Resources.ResourceManager("VsTeXProject.VisualStudio.Project", this.GetType().Assembly);
+            get { return null; }
+        }
+
+        [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
+        public static ResourceManager Resources
+        {
+            get { return GetLoader().resources; }
         }
 
         private static SR GetLoader()
         {
-            if(loader == null)
+            if (loader == null)
             {
-                lock(InternalSyncObject)
+                lock (InternalSyncObject)
                 {
-                    if(loader == null)
+                    if (loader == null)
                     {
                         loader = new SR();
                     }
@@ -254,61 +259,44 @@ namespace VsTeXProject.VisualStudio.Project
             return loader;
         }
 
-        private static CultureInfo Culture
-        {
-            get { return null; }
-        }
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        public static ResourceManager Resources
-        {
-            get
-            {
-                return GetLoader().resources;
-            }
-        }
-
         public static string GetString(string name, params object[] args)
         {
-            SR sys = GetLoader();
-            if(sys == null)
+            var sys = GetLoader();
+            if (sys == null)
                 return null;
-            string res = sys.resources.GetString(name, SR.Culture);
+            var res = sys.resources.GetString(name, Culture);
 
-            if(args != null && args.Length > 0)
+            if (args != null && args.Length > 0)
             {
-                return String.Format(CultureInfo.CurrentCulture, res, args);
+                return string.Format(CultureInfo.CurrentCulture, res, args);
             }
-            else
-            {
-                return res;
-            }
+            return res;
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
+        [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         public static string GetString(string name)
         {
-            SR sys = GetLoader();
-            if(sys == null)
+            var sys = GetLoader();
+            if (sys == null)
                 return null;
-            return sys.resources.GetString(name, SR.Culture);
+            return sys.resources.GetString(name, Culture);
         }
 
         public static string GetString(string name, CultureInfo culture)
         {
-            SR sys = GetLoader();
-            if(sys == null)
+            var sys = GetLoader();
+            if (sys == null)
                 return null;
             return sys.resources.GetString(name, culture);
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
+        [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         public static object GetObject(string name)
         {
-            SR sys = GetLoader();
-            if(sys == null)
+            var sys = GetLoader();
+            if (sys == null)
                 return null;
-            return sys.resources.GetObject(name, SR.Culture);
+            return sys.resources.GetObject(name, Culture);
         }
     }
 }

@@ -49,17 +49,13 @@ a particular purpose and non-infringement.
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using EnvDTE;
 
 namespace VsTeXProject.VisualStudio.Project.Automation
 {
     [CLSCompliant(false), ComVisible(true)]
-    public class OAProperty : EnvDTE.Property
+    public class OAProperty : Property
     {
-        #region fields
-        private OAProperties parent;
-        private PropertyInfo pi;
-        #endregion
-
         #region ctors
 
         public OAProperty(OAProperties parent, PropertyInfo pi)
@@ -67,11 +63,20 @@ namespace VsTeXProject.VisualStudio.Project.Automation
             this.parent = parent;
             this.pi = pi;
         }
+
+        #endregion
+
+        #region fields
+
+        private readonly OAProperties parent;
+        private readonly PropertyInfo pi;
+
         #endregion
 
         #region EnvDTE.Property
+
         /// <summary>
-        /// Microsoft Internal Use Only.
+        ///     Microsoft Internal Use Only.
         /// </summary>
         public object Application
         {
@@ -79,30 +84,27 @@ namespace VsTeXProject.VisualStudio.Project.Automation
         }
 
         /// <summary>
-        /// Gets the Collection containing the Property object supporting this property.
+        ///     Gets the Collection containing the Property object supporting this property.
         /// </summary>
-        public EnvDTE.Properties Collection
+        public Properties Collection
         {
             get
             {
                 //todo: EnvDTE.Property.Collection
-                return this.parent;
+                return parent;
             }
         }
 
         /// <summary>
-        /// Gets the top-level extensibility object.
+        ///     Gets the top-level extensibility object.
         /// </summary>
-        public EnvDTE.DTE DTE
+        public DTE DTE
         {
-            get
-            {
-                return this.parent.DTE;
-            }
+            get { return parent.DTE; }
         }
 
         /// <summary>
-        /// Returns one element of a list. 
+        ///     Returns one element of a list.
         /// </summary>
         /// <param name="index1">The index of the item to display.</param>
         /// <param name="index2">The index of the item to display. Reserved for future use.</param>
@@ -111,66 +113,58 @@ namespace VsTeXProject.VisualStudio.Project.Automation
         /// <returns>The value of a property</returns>
         public object get_IndexedValue(object index1, object index2, object index3, object index4)
         {
-            ParameterInfo[] par = pi.GetIndexParameters();
-            int len = Math.Min(par.Length, 4);
-            if(len == 0) return this.Value;
-            object[] index = new object[len];
-            Array.Copy(new object[4] { index1, index2, index3, index4 }, index, len);
-            return this.pi.GetValue(this.parent.Target, index);
+            var par = pi.GetIndexParameters();
+            var len = Math.Min(par.Length, 4);
+            if (len == 0) return Value;
+            var index = new object[len];
+            Array.Copy(new object[4] {index1, index2, index3, index4}, index, len);
+            return pi.GetValue(parent.Target, index);
         }
 
         /// <summary>
-        /// Setter function to set properties values. 
+        ///     Setter function to set properties values.
         /// </summary>
         /// <param name="value"></param>
         public void let_Value(object value)
         {
-            this.Value = value;
+            Value = value;
         }
 
         /// <summary>
-        /// Gets the name of the object.
+        ///     Gets the name of the object.
         /// </summary>
         public string Name
         {
-            get
-            {
-                return pi.Name;
-            }
+            get { return pi.Name; }
         }
 
         /// <summary>
-        /// Gets the number of indices required to access the value.
+        ///     Gets the number of indices required to access the value.
         /// </summary>
         public short NumIndices
         {
-            get { return (short)pi.GetIndexParameters().Length; }
+            get { return (short) pi.GetIndexParameters().Length; }
         }
 
         /// <summary>
-        /// Sets or gets the object supporting the Property object.
+        ///     Sets or gets the object supporting the Property object.
         /// </summary>
         public object Object
         {
-            get
-            {
-                return this.parent.Target;
-            }
-            set
-            {
-            }
+            get { return parent.Target; }
+            set { }
         }
 
         /// <summary>
-        /// Microsoft Internal Use Only.
+        ///     Microsoft Internal Use Only.
         /// </summary>
-        public EnvDTE.Properties Parent
+        public Properties Parent
         {
-            get { return this.parent; }
+            get { return parent; }
         }
 
         /// <summary>
-        /// Sets the value of the property at the specified index.
+        ///     Sets the value of the property at the specified index.
         /// </summary>
         /// <param name="index1">The index of the item to set.</param>
         /// <param name="index2">Reserved for future use.</param>
@@ -179,39 +173,39 @@ namespace VsTeXProject.VisualStudio.Project.Automation
         /// <param name="value">The value to set.</param>
         public void set_IndexedValue(object index1, object index2, object index3, object index4, object value)
         {
-            ParameterInfo[] par = pi.GetIndexParameters();
-            int len = Math.Min(par.Length, 4);
-            if(len == 0)
+            var par = pi.GetIndexParameters();
+            var len = Math.Min(par.Length, 4);
+            if (len == 0)
             {
-                this.Value = value;
+                Value = value;
             }
             else
             {
-                object[] index = new object[len];
-                Array.Copy(new object[4] { index1, index2, index3, index4 }, index, len);
+                var index = new object[len];
+                Array.Copy(new object[4] {index1, index2, index3, index4}, index, len);
 
-                using(AutomationScope scope = new AutomationScope(this.parent.Target.Node.ProjectMgr.Site))
+                using (var scope = new AutomationScope(parent.Target.Node.ProjectMgr.Site))
                 {
-                    this.pi.SetValue(this.parent.Target, value, index);
+                    pi.SetValue(parent.Target, value, index);
                 }
             }
-
         }
 
         /// <summary>
-        /// Gets or sets the value of the property returned by the Property object.
+        ///     Gets or sets the value of the property returned by the Property object.
         /// </summary>
         public object Value
         {
-            get { return pi.GetValue(this.parent.Target, null); }
+            get { return pi.GetValue(parent.Target, null); }
             set
             {
-                using(AutomationScope scope = new AutomationScope(this.parent.Target.Node.ProjectMgr.Site))
+                using (var scope = new AutomationScope(parent.Target.Node.ProjectMgr.Site))
                 {
-                    this.pi.SetValue(this.parent.Target, value, null);
+                    pi.SetValue(parent.Target, value, null);
                 }
             }
         }
+
         #endregion
     }
 }

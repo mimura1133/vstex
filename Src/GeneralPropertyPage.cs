@@ -19,6 +19,8 @@ namespace VsTeXProject
         #region Fields
         private OutputType outputType;
         private TeXProcessor _teXProcessor;
+        private string _toolspath;
+
         #endregion Fields
 
         #region Constructors
@@ -32,6 +34,10 @@ namespace VsTeXProject
         #endregion
 
         #region Properties
+
+        [ResourcesCategoryAttribute(Resources.Application)]
+        [LocDisplayName(Resources.OutputType)]
+        [ResourcesDescriptionAttribute(Resources.OutputTypeDescription)]
         /// <summary>
         /// Gets or sets OutputType.
         /// </summary>
@@ -46,13 +52,26 @@ namespace VsTeXProject
         [LocDisplayName(Resources.TeXProcessor)]
         [ResourcesDescriptionAttribute(Resources.TeXProcessorDescription)]
         /// <summary>
-        /// Gets or sets Default Namespace.
+        /// Gets or sets TeX Processor.
         /// </summary>
         /// <remarks>IsDirty flag was switched to true.</remarks>
         public TeXProcessor TeXProcessor
         {
             get { return this._teXProcessor; }
             set { this._teXProcessor = value; this.IsDirty = true; }
+        }
+
+        [ResourcesCategoryAttribute(Resources.Application)]
+        [LocDisplayName(Resources.ToolsPath)]
+        [ResourcesDescriptionAttribute(Resources.ToolsPathDescription)]
+        /// <summary>
+        /// Gets or sets Tools Path.
+        /// </summary>
+        /// <remarks>IsDirty flag was switched to true.</remarks>
+        public string ToolsPath
+        {
+            get { return this._toolspath; }
+            set { this._toolspath = value; this.IsDirty = true; }
         }
 
         [ResourcesCategoryAttribute(Resources.Project)]
@@ -124,6 +143,8 @@ namespace VsTeXProject
                 {
                 }
             }
+
+            this._toolspath = this.ProjectMgr.GetProjectProperty("ToolsPath", false);
         }
 
         /// <summary>
@@ -141,6 +162,7 @@ namespace VsTeXProject
 
             this.ProjectMgr.SetProjectProperty("OutputType", this.outputType.ToString());
             this.ProjectMgr.SetProjectProperty("TeXProcessor", this.TeXProcessor.ToString());
+            this.ProjectMgr.SetProjectProperty("ToolsPath",this._toolspath);
 
             this.IsDirty = false;
 

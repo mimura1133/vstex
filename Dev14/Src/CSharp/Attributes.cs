@@ -49,68 +49,78 @@ a particular purpose and non-infringement.
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
-    /// Defines a type converter.
+    ///     Defines a type converter.
     /// </summary>
-    /// <remarks>This is needed to get rid of the type TypeConverter type that could not give back the Type we were passing to him.
-    /// We do not want to use reflection to get the type back from the  ConverterTypeName. Also the GetType methos does not spwan converters from other assemblies.</remarks>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1019:DefineAccessorsForAttributeArguments"), AttributeUsage(AttributeTargets.Class | AttributeTargets.Enum | AttributeTargets.Property | AttributeTargets.Field)]
+    /// <remarks>
+    ///     This is needed to get rid of the type TypeConverter type that could not give back the Type we were passing to him.
+    ///     We do not want to use reflection to get the type back from the  ConverterTypeName. Also the GetType methos does not
+    ///     spwan converters from other assemblies.
+    /// </remarks>
+    [SuppressMessage("Microsoft.Design", "CA1019:DefineAccessorsForAttributeArguments"),
+     AttributeUsage(AttributeTargets.Class | AttributeTargets.Enum | AttributeTargets.Property | AttributeTargets.Field)
+    ]
     public sealed class PropertyPageTypeConverterAttribute : Attribute
     {
         #region fields
-        Type converterType;
+
         #endregion
 
         #region ctors
+
         public PropertyPageTypeConverterAttribute(Type type)
         {
-            this.converterType = type;
+            ConverterType = type;
         }
+
         #endregion
 
         #region properties
-        public Type ConverterType
-        {
-            get
-            {
-                return this.converterType;
-            }
-        }
+
+        public Type ConverterType { get; }
+
         #endregion
     }
 
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property | AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property | AttributeTargets.Field, Inherited = false)]
     internal sealed class LocDisplayNameAttribute : DisplayNameAttribute
     {
         #region fields
-        string name;
+
+        private readonly string name;
+
         #endregion
 
         #region ctors
+
         public LocDisplayNameAttribute(string name)
         {
             this.name = name;
         }
+
         #endregion
 
         #region properties
+
         public override string DisplayName
         {
             get
             {
-                string result = SR.GetString(this.name, CultureInfo.CurrentUICulture);
-                if(result == null)
+                var result = SR.GetString(name, CultureInfo.CurrentUICulture);
+                if (result == null)
                 {
-                    Debug.Assert(false, "String resource '" + this.name + "' is missing");
-                    result = this.name;
+                    Debug.Assert(false, "String resource '" + name + "' is missing");
+                    result = name;
                 }
                 return result;
             }
         }
+
         #endregion
     }
 }

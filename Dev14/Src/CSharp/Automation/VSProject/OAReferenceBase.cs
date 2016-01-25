@@ -49,12 +49,13 @@ a particular purpose and non-infringement.
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using EnvDTE;
 using VSLangProj;
 
 namespace VsTeXProject.VisualStudio.Project.Automation
 {
     /// <summary>
-    /// Represents the automation equivalent of ReferenceNode
+    ///     Represents the automation equivalent of ReferenceNode
     /// </summary>
     /// <typeparam name="RefType"></typeparam>
     [SuppressMessage("Microsoft.Naming", "CA1715:IdentifiersShouldHaveCorrectPrefix", MessageId = "T")]
@@ -63,24 +64,26 @@ namespace VsTeXProject.VisualStudio.Project.Automation
         where RefType : ReferenceNode
     {
         #region fields
-        private RefType referenceNode;
+
         #endregion
 
         #region ctors
+
         protected OAReferenceBase(RefType referenceNode)
         {
-            this.referenceNode = referenceNode;
+            BaseReferenceNode = referenceNode;
         }
+
         #endregion
 
         #region properties
-        protected RefType BaseReferenceNode
-        {
-            get { return referenceNode; }
-        }
+
+        protected RefType BaseReferenceNode { get; }
+
         #endregion
 
         #region Reference Members
+
         public virtual int BuildNumber
         {
             get { return 0; }
@@ -88,30 +91,18 @@ namespace VsTeXProject.VisualStudio.Project.Automation
 
         public virtual References Collection
         {
-            get
-            {
-                return BaseReferenceNode.Parent.Object as References;
-            }
+            get { return BaseReferenceNode.Parent.Object as References; }
         }
 
         public virtual EnvDTE.Project ContainingProject
         {
-            get
-            {
-                return BaseReferenceNode.ProjectMgr.GetAutomationObject() as EnvDTE.Project;
-            }
+            get { return BaseReferenceNode.ProjectMgr.GetAutomationObject() as EnvDTE.Project; }
         }
 
         public virtual bool CopyLocal
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
+            set { throw new NotImplementedException(); }
         }
 
         public virtual string Culture
@@ -119,20 +110,14 @@ namespace VsTeXProject.VisualStudio.Project.Automation
             get { throw new NotImplementedException(); }
         }
 
-        public virtual EnvDTE.DTE DTE
+        public virtual DTE DTE
         {
-            get
-            {
-                return BaseReferenceNode.ProjectMgr.Site.GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE;
-            }
+            get { return BaseReferenceNode.ProjectMgr.Site.GetService(typeof (DTE)) as DTE; }
         }
 
         public virtual string Description
         {
-            get
-            {
-                return this.Name;
-            }
+            get { return Name; }
         }
 
         public virtual string ExtenderCATID
@@ -167,10 +152,7 @@ namespace VsTeXProject.VisualStudio.Project.Automation
 
         public virtual string Path
         {
-            get
-            {
-                return BaseReferenceNode.Url;
-            }
+            get { return BaseReferenceNode.Url; }
         }
 
         public virtual string PublicKeyToken
@@ -212,6 +194,7 @@ namespace VsTeXProject.VisualStudio.Project.Automation
         {
             throw new NotImplementedException();
         }
+
         #endregion
     }
 }

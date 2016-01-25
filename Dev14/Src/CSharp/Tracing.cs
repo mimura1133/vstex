@@ -46,65 +46,68 @@ a particular purpose and non-infringement.
 
 ********************************************************************************************/
 
+using System;
 using System.Diagnostics;
 
 namespace VsTeXProject.VisualStudio.Project
 {
     internal class CCITracing
     {
-        private CCITracing() { }
-
-        [ConditionalAttribute("Enable_CCIDiagnostics")]
-        static void InternalTraceCall(int levels)
+        private CCITracing()
         {
-            System.Diagnostics.StackFrame stack;
-            stack = new System.Diagnostics.StackFrame(levels);
-            System.Reflection.MethodBase method = stack.GetMethod();
-            if(method != null)
+        }
+
+        [Conditional("Enable_CCIDiagnostics")]
+        private static void InternalTraceCall(int levels)
+        {
+            StackFrame stack;
+            stack = new StackFrame(levels);
+            var method = stack.GetMethod();
+            if (method != null)
             {
-                string name = method.Name + " \tin class " + method.DeclaringType.Name;
+                var name = method.Name + " \tin class " + method.DeclaringType.Name;
                 System.Diagnostics.Trace.WriteLine("Call Trace: \t" + name);
             }
         }
 
-        [ConditionalAttribute("CCI_TRACING")]
-        static public void TraceCall()
+        [Conditional("CCI_TRACING")]
+        public static void TraceCall()
         {
             // skip this one as well
-            CCITracing.InternalTraceCall(2);
+            InternalTraceCall(2);
         }
 
-        [ConditionalAttribute("CCI_TRACING")]
-        static public void TraceCall(string strParameters)
+        [Conditional("CCI_TRACING")]
+        public static void TraceCall(string strParameters)
         {
-            CCITracing.InternalTraceCall(2);
+            InternalTraceCall(2);
             System.Diagnostics.Trace.WriteLine("\tParameters: \t" + strParameters);
         }
 
-        [ConditionalAttribute("CCI_TRACING")]
-        static public void Trace(System.Exception e)
+        [Conditional("CCI_TRACING")]
+        public static void Trace(Exception e)
         {
-            CCITracing.InternalTraceCall(2);
-            System.Diagnostics.Trace.WriteLine("ExceptionInfo: \t" + e.ToString());
+            InternalTraceCall(2);
+            System.Diagnostics.Trace.WriteLine("ExceptionInfo: \t" + e);
         }
 
-        [ConditionalAttribute("CCI_TRACING")]
-        static public void Trace(string strOutput)
+        [Conditional("CCI_TRACING")]
+        public static void Trace(string strOutput)
         {
             System.Diagnostics.Trace.WriteLine(strOutput);
         }
 
-        [ConditionalAttribute("CCI_TRACING")]
-        static public void TraceData(string strOutput)
+        [Conditional("CCI_TRACING")]
+        public static void TraceData(string strOutput)
         {
             System.Diagnostics.Trace.WriteLine("Data Trace: \t" + strOutput);
         }
 
-        [ConditionalAttribute("Enable_CCIFileOutput")]
-        [ConditionalAttribute("CCI_TRACING")]
-        static public void AddTraceLog(string strFileName)
+        [Conditional("Enable_CCIFileOutput")]
+        [Conditional("CCI_TRACING")]
+        public static void AddTraceLog(string strFileName)
         {
-            TextWriterTraceListener tw = new TextWriterTraceListener("c:\\mytrace.log");
+            var tw = new TextWriterTraceListener("c:\\mytrace.log");
             System.Diagnostics.Trace.Listeners.Add(tw);
         }
     }

@@ -50,7 +50,6 @@ namespace VsTeXProject.VisualStudio.Project
 {
     internal static class ExternDll
     {
-
 #if FEATURE_PAL
 
 #if !PLATFORM_UNIX

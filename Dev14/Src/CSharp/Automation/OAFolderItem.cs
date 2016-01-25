@@ -54,13 +54,14 @@ using EnvDTE;
 namespace VsTeXProject.VisualStudio.Project.Automation
 {
     /// <summary>
-    /// Represents an automation object for a folder in a project
+    ///     Represents an automation object for a folder in a project
     /// </summary>
     [SuppressMessage("Microsoft.Interoperability", "CA1405:ComVisibleTypeBaseTypesShouldBeComVisible")]
     [ComVisible(true), CLSCompliant(false)]
     public class OAFolderItem : OAProjectItem<FolderNode>
     {
         #region ctors
+
         public OAFolderItem(OAProject project, FolderNode node)
             : base(project, node)
         {
@@ -69,13 +70,14 @@ namespace VsTeXProject.VisualStudio.Project.Automation
         #endregion
 
         #region overridden methods
+
         public override ProjectItems Collection
         {
             get
             {
-                return UIThread.DoOnUIThread(delegate()
+                return UIThread.DoOnUIThread(delegate
                 {
-                    ProjectItems items = new OAProjectItems(this.Project, this.Node);
+                    ProjectItems items = new OAProjectItems(Project, Node);
                     return items;
                 });
             }
@@ -83,11 +85,9 @@ namespace VsTeXProject.VisualStudio.Project.Automation
 
         public override ProjectItems ProjectItems
         {
-            get
-            {
-                return this.Collection;
-            }
+            get { return Collection; }
         }
+
         #endregion
     }
 }

@@ -55,24 +55,41 @@ namespace VsTeXProject.VisualStudio.Project
 {
     public class BuildDependency : IVsBuildDependency
     {
-        Guid referencedProjectGuid = Guid.Empty;
-        ProjectNode projectMgr = null;
+        private readonly ProjectNode projectMgr;
+        private readonly Guid referencedProjectGuid = Guid.Empty;
 
         [CLSCompliant(false)]
         public BuildDependency(ProjectNode projectMgr, Guid projectReference)
         {
-            this.referencedProjectGuid = projectReference;
+            referencedProjectGuid = projectReference;
             this.projectMgr = projectMgr;
         }
 
+        #region helper methods
+
+        private IVsHierarchy GetReferencedHierarchy()
+        {
+            IVsHierarchy hierarchy = null;
+
+            if (referencedProjectGuid == Guid.Empty || projectMgr == null || projectMgr.IsClosed)
+            {
+                return hierarchy;
+            }
+
+            return VsShellUtilities.GetHierarchy(projectMgr.Site, referencedProjectGuid);
+        }
+
+        #endregion
+
         #region IVsBuildDependency methods
+
         public int get_CanonicalName(out string canonicalName)
         {
             canonicalName = null;
             return VSConstants.S_OK;
         }
 
-        public int get_Type(out System.Guid guidType)
+        public int get_Type(out Guid guidType)
         {
             // All our dependencies are build projects
             guidType = VSConstants.GUID_VS_DEPTYPE_BUILD_PROJECT;
@@ -110,29 +127,12 @@ namespace VsTeXProject.VisualStudio.Project
         {
             unknownProject = null;
 
-            unknownProject = this.GetReferencedHierarchy();
+            unknownProject = GetReferencedHierarchy();
 
             // If we cannot find the referenced hierarchy return S_FALSE.
-            return (unknownProject == null) ? VSConstants.S_FALSE : VSConstants.S_OK;
+            return unknownProject == null ? VSConstants.S_FALSE : VSConstants.S_OK;
         }
 
         #endregion
-
-        #region helper methods
-        private IVsHierarchy GetReferencedHierarchy()
-        {
-            IVsHierarchy hierarchy = null;
-
-            if(this.referencedProjectGuid == Guid.Empty || this.projectMgr == null || this.projectMgr.IsClosed)
-            {
-                return hierarchy;
-            }
-
-            return VsShellUtilities.GetHierarchy(this.projectMgr.Site, this.referencedProjectGuid);
-
-        }
-
-        #endregion
-
     }
 }

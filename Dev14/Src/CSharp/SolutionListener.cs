@@ -48,30 +48,18 @@ a particular purpose and non-infringement.
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
-using IServiceProvider = System.IServiceProvider;
 using ShellConstants = Microsoft.VisualStudio.Shell.Interop.Constants;
 
 namespace VsTeXProject.VisualStudio.Project
 {
-
     [CLSCompliant(false)]
     public abstract class SolutionListener : IVsSolutionEvents3, IVsSolutionEvents4, IDisposable
     {
-
-        #region fields
-        private uint eventsCookie;
-        private IVsSolution solution;
-        private IServiceProvider serviceProvider;
-        private bool isDisposed;
-        /// <summary>
-        /// Defines an object that will be a mutex for this object for synchronizing thread calls.
-        /// </summary>
-        private static volatile object Mutex = new object();
-        #endregion
-
         #region ctors
+
         protected SolutionListener(IServiceProvider serviceProviderParameter)
         {
             if (serviceProviderParameter == null)
@@ -79,54 +67,64 @@ namespace VsTeXProject.VisualStudio.Project
                 throw new ArgumentNullException("serviceProviderParameter");
             }
 
-            this.serviceProvider = serviceProviderParameter;
-            this.solution = this.serviceProvider.GetService(typeof(SVsSolution)) as IVsSolution;
+            ServiceProvider = serviceProviderParameter;
+            Solution = ServiceProvider.GetService(typeof (SVsSolution)) as IVsSolution;
 
-            Debug.Assert(this.solution != null, "Could not get the IVsSolution object from the services exposed by this project");
+            Debug.Assert(Solution != null,
+                "Could not get the IVsSolution object from the services exposed by this project");
 
-            if(this.solution == null)
+            if (Solution == null)
             {
                 throw new InvalidOperationException();
             }
 
-            this.InteropSafeIVsSolutionEvents = Utilities.GetOuterAs<IVsSolutionEvents>(this);
+            InteropSafeIVsSolutionEvents = Utilities.GetOuterAs<IVsSolutionEvents>(this);
         }
+
+        #endregion
+
+        #region Dispose
+
+        /// <summary>
+        ///     The IDispose interface Dispose method for disposing the object determinastically.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
+
+        #region fields
+
+        private uint eventsCookie;
+        private bool isDisposed;
+
+        /// <summary>
+        ///     Defines an object that will be a mutex for this object for synchronizing thread calls.
+        /// </summary>
+        private static volatile object Mutex = new object();
+
         #endregion
 
         #region properties
 
-        public IVsSolutionEvents InteropSafeIVsSolutionEvents
-        {
-            get;
-            protected set;
-        }
+        public IVsSolutionEvents InteropSafeIVsSolutionEvents { get; protected set; }
 
         protected uint EventsCookie
         {
-            get
-            {
-                return this.eventsCookie;
-            }
+            get { return eventsCookie; }
         }
 
-        protected IVsSolution Solution
-        {
-            get
-            {
-                return this.solution;
-            }
-        }
+        protected IVsSolution Solution { get; }
 
-        protected IServiceProvider ServiceProvider
-        {
-            get
-            {
-                return this.serviceProvider;
-            }
-        }
+        protected IServiceProvider ServiceProvider { get; }
+
         #endregion
 
         #region IVsSolutionEvents3, IVsSolutionEvents2, IVsSolutionEvents methods
+
         public virtual int OnAfterCloseSolution(object reserved)
         {
             return VSConstants.E_NOTIMPL;
@@ -201,9 +199,11 @@ namespace VsTeXProject.VisualStudio.Project
         {
             return VSConstants.E_NOTIMPL;
         }
+
         #endregion
 
         #region IVsSolutionEvents4 methods
+
         public virtual int OnAfterAsynchOpenProject(IVsHierarchy hierarchy, int added)
         {
             return VSConstants.E_NOTIMPL;
@@ -220,59 +220,50 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Fired before a project is moved from one parent to another in the solution explorer
+        ///     Fired before a project is moved from one parent to another in the solution explorer
         /// </summary>
         public virtual int OnQueryChangeProjectParent(IVsHierarchy hierarchy, IVsHierarchy newParentHier, ref int cancel)
         {
             return VSConstants.E_NOTIMPL;
         }
-        #endregion
-
-        #region Dispose
-
-        /// <summary>
-        /// The IDispose interface Dispose method for disposing the object determinastically.
-        /// </summary>
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
 
         #endregion
 
         #region methods
+
         public void Init()
         {
-            if(this.solution != null)
+            if (Solution != null)
             {
-                ErrorHandler.ThrowOnFailure(this.solution.AdviseSolutionEvents(this.InteropSafeIVsSolutionEvents, out this.eventsCookie));
+                ErrorHandler.ThrowOnFailure(Solution.AdviseSolutionEvents(InteropSafeIVsSolutionEvents, out eventsCookie));
             }
         }
 
         /// <summary>
-        /// The method that does the cleanup.
+        ///     The method that does the cleanup.
         /// </summary>
         /// <param name="disposing"></param>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA1806:DoNotIgnoreMethodResults", MessageId = "Microsoft.VisualStudio.Shell.Interop.IVsSolution.UnadviseSolutionEvents(System.UInt32)")]
+        [SuppressMessage("Microsoft.Usage", "CA1806:DoNotIgnoreMethodResults",
+            MessageId = "Microsoft.VisualStudio.Shell.Interop.IVsSolution.UnadviseSolutionEvents(System.UInt32)")]
         protected virtual void Dispose(bool disposing)
         {
             // Everybody can go here.
-            if(!this.isDisposed)
+            if (!isDisposed)
             {
                 // Synchronize calls to the Dispose simulteniously.
-                lock(Mutex)
+                lock (Mutex)
                 {
-                    if(disposing && this.eventsCookie != (uint)ShellConstants.VSCOOKIE_NIL && this.solution != null)
+                    if (disposing && eventsCookie != (uint) ShellConstants.VSCOOKIE_NIL && Solution != null)
                     {
-                        this.solution.UnadviseSolutionEvents((uint)this.eventsCookie);
-                        this.eventsCookie = (uint)ShellConstants.VSCOOKIE_NIL;
+                        Solution.UnadviseSolutionEvents(eventsCookie);
+                        eventsCookie = (uint) ShellConstants.VSCOOKIE_NIL;
                     }
 
-                    this.isDisposed = true;
+                    isDisposed = true;
                 }
             }
         }
+
         #endregion
     }
 }

@@ -50,17 +50,19 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using EnvDTE;
 
 namespace VsTeXProject.VisualStudio.Project.Automation
 {
     /// <summary>
-    /// Contains OAReferenceItem objects 
+    ///     Contains OAReferenceItem objects
     /// </summary>
     [SuppressMessage("Microsoft.Interoperability", "CA1405:ComVisibleTypeBaseTypesShouldBeComVisible")]
     [ComVisible(true), CLSCompliant(false)]
     public class OAReferenceFolderItem : OAProjectItem<ReferenceContainerNode>
     {
         #region ctors
+
         public OAReferenceFolderItem(OAProject project, ReferenceContainerNode node)
             : base(project, node)
         {
@@ -69,36 +71,35 @@ namespace VsTeXProject.VisualStudio.Project.Automation
         #endregion
 
         #region overridden methods
-        /// <summary>
-        /// Returns the project items collection of all the references defined for this project.
-        /// </summary>
-        public override EnvDTE.ProjectItems ProjectItems
-        {
-            get
-            {
-                return new OANavigableProjectItems(this.Project, this.GetListOfProjectItems(), this.Node);
-            }
-        }
 
+        /// <summary>
+        ///     Returns the project items collection of all the references defined for this project.
+        /// </summary>
+        public override ProjectItems ProjectItems
+        {
+            get { return new OANavigableProjectItems(Project, GetListOfProjectItems(), Node); }
+        }
 
         #endregion
 
         #region Helper methods
-        private List<EnvDTE.ProjectItem> GetListOfProjectItems()
-        {
-            List<EnvDTE.ProjectItem> list = new List<EnvDTE.ProjectItem>();
-            for(HierarchyNode child = this.Node.FirstChild; child != null; child = child.NextSibling)
-            {
-                ReferenceNode node = child as ReferenceNode;
 
-                if(node != null)
+        private List<ProjectItem> GetListOfProjectItems()
+        {
+            var list = new List<ProjectItem>();
+            for (var child = Node.FirstChild; child != null; child = child.NextSibling)
+            {
+                var node = child as ReferenceNode;
+
+                if (node != null)
                 {
-                    list.Add(new OAReferenceItem(this.Project, node));
+                    list.Add(new OAReferenceItem(Project, node));
                 }
             }
 
             return list;
         }
+
         #endregion
     }
 }

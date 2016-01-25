@@ -48,14 +48,13 @@ a particular purpose and non-infringement.
 
 using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Permissions;
 using System.Text;
 using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using VsTeXProject.VisualStudio.Project.Automation;
 using OleConstants = Microsoft.VisualStudio.OLE.Interop.Constants;
 using VsCommands2K = Microsoft.VisualStudio.VSConstants.VSStd2KCmdID;
 
@@ -67,27 +66,29 @@ namespace VsTeXProject.VisualStudio.Project
         protected delegate void CannotAddReferenceErrorMessage();
 
         #region ctors
+
         /// <summary>
-        /// constructor for the ReferenceNode
+        ///     constructor for the ReferenceNode
         /// </summary>
         protected ReferenceNode(ProjectNode root, ProjectElement element)
             : base(root, element)
         {
-            this.ExcludeNodeFromScc = true;
+            ExcludeNodeFromScc = true;
         }
 
         /// <summary>
-        /// constructor for the ReferenceNode
+        ///     constructor for the ReferenceNode
         /// </summary>
         protected ReferenceNode(ProjectNode root)
             : base(root)
         {
-            this.ExcludeNodeFromScc = true;
+            ExcludeNodeFromScc = true;
         }
 
         #endregion
 
         #region overridden properties
+
         public override int MenuCommandId
         {
             get { return VsMenus.IDM_VS_CTXT_REFERENCE; }
@@ -100,43 +101,39 @@ namespace VsTeXProject.VisualStudio.Project
 
         public override string Url
         {
-            get
-            {
-                return String.Empty;
-            }
+            get { return string.Empty; }
         }
 
         public override string Caption
         {
-            get
-            {
-                return String.Empty;
-            }
+            get { return string.Empty; }
         }
+
         #endregion
 
         #region overridden methods
+
         protected override NodeProperties CreatePropertiesObject()
         {
             return new ReferenceNodeProperties(this);
         }
 
         /// <summary>
-        /// Get an instance of the automation object for ReferenceNode
+        ///     Get an instance of the automation object for ReferenceNode
         /// </summary>
         /// <returns>An instance of Automation.OAReferenceItem type if succeeded</returns>
         public override object GetAutomationObject()
         {
-            if(this.ProjectMgr == null || this.ProjectMgr.IsClosed)
+            if (ProjectMgr == null || ProjectMgr.IsClosed)
             {
                 return null;
             }
 
-            return new Automation.OAReferenceItem(this.ProjectMgr.GetAutomationObject() as Automation.OAProject, this);
+            return new OAReferenceItem(ProjectMgr.GetAutomationObject() as OAProject, this);
         }
 
         /// <summary>
-        /// Disable inline editing of Caption of a ReferendeNode
+        ///     Disable inline editing of Caption of a ReferendeNode
         /// </summary>
         /// <returns>null</returns>
         public override string GetEditLabel()
@@ -147,29 +144,31 @@ namespace VsTeXProject.VisualStudio.Project
 
         public override object GetIconHandle(bool open)
         {
-            int offset = (this.CanShowDefaultIcon() ? (int)ProjectNode.ImageName.Reference : (int)ProjectNode.ImageName.DanglingReference);
-            return this.ProjectMgr.ImageHandler.GetIconHandle(offset);
+            var offset = CanShowDefaultIcon()
+                ? (int) ProjectNode.ImageName.Reference
+                : (int) ProjectNode.ImageName.DanglingReference;
+            return ProjectMgr.ImageHandler.GetIconHandle(offset);
         }
 
         /// <summary>
-        /// This method is called by the interface method GetMkDocument to specify the item moniker.
+        ///     This method is called by the interface method GetMkDocument to specify the item moniker.
         /// </summary>
         /// <returns>The moniker for this item</returns>
         public override string GetMkDocument()
         {
-            return this.Url;
+            return Url;
         }
 
         /// <summary>
-        /// Not supported.
+        ///     Not supported.
         /// </summary>
         protected override int ExcludeFromProject()
         {
-            return (int)OleConstants.OLECMDERR_E_NOTSUPPORTED;
+            return (int) OleConstants.OLECMDERR_E_NOTSUPPORTED;
         }
 
         /// <summary>
-        /// References node cannot be dragged.
+        ///     References node cannot be dragged.
         /// </summary>
         /// <returns>A stringbuilder.</returns>
         protected internal override StringBuilder PrepareSelectedNodesForClipBoard()
@@ -179,9 +178,9 @@ namespace VsTeXProject.VisualStudio.Project
 
         protected override int QueryStatusOnNode(Guid cmdGroup, uint cmd, IntPtr pCmdText, ref QueryStatusResult result)
         {
-            if(cmdGroup == VsMenus.guidStandardCommandSet2K)
+            if (cmdGroup == VsMenus.guidStandardCommandSet2K)
             {
-                if((VsCommands2K)cmd == VsCommands2K.QUICKOBJECTSEARCH)
+                if ((VsCommands2K) cmd == VsCommands2K.QUICKOBJECTSEARCH)
                 {
                     result |= QueryStatusResult.SUPPORTED | QueryStatusResult.ENABLED;
                     return VSConstants.S_OK;
@@ -189,18 +188,18 @@ namespace VsTeXProject.VisualStudio.Project
             }
             else
             {
-                return (int)OleConstants.OLECMDERR_E_UNKNOWNGROUP;
+                return (int) OleConstants.OLECMDERR_E_UNKNOWNGROUP;
             }
             return base.QueryStatusOnNode(cmdGroup, cmd, pCmdText, ref result);
         }
 
         protected override int ExecCommandOnNode(Guid cmdGroup, uint cmd, uint nCmdexecopt, IntPtr pvaIn, IntPtr pvaOut)
         {
-            if(cmdGroup == VsMenus.guidStandardCommandSet2K)
+            if (cmdGroup == VsMenus.guidStandardCommandSet2K)
             {
-                if((VsCommands2K)cmd == VsCommands2K.QUICKOBJECTSEARCH)
+                if ((VsCommands2K) cmd == VsCommands2K.QUICKOBJECTSEARCH)
                 {
-                    return this.ShowObjectBrowser();
+                    return ShowObjectBrowser();
                 }
             }
 
@@ -211,56 +210,53 @@ namespace VsTeXProject.VisualStudio.Project
 
         #region  methods
 
-
         /// <summary>
-        /// Links a reference node to the project and hierarchy.
+        ///     Links a reference node to the project and hierarchy.
         /// </summary>
         public virtual void AddReference()
         {
-            ReferenceContainerNode referencesFolder = this.ProjectMgr.FindChild(ReferenceContainerNode.ReferencesNodeVirtualName) as ReferenceContainerNode;
+            var referencesFolder =
+                ProjectMgr.FindChild(ReferenceContainerNode.ReferencesNodeVirtualName) as ReferenceContainerNode;
             Debug.Assert(referencesFolder != null, "Could not find the References node");
 
             CannotAddReferenceErrorMessage referenceErrorMessageHandler = null;
 
-            if(!this.CanAddReference(out referenceErrorMessageHandler))
+            if (!CanAddReference(out referenceErrorMessageHandler))
             {
-                if(referenceErrorMessageHandler != null)
+                if (referenceErrorMessageHandler != null)
                 {
-                    referenceErrorMessageHandler.DynamicInvoke(new object[] { });
+                    referenceErrorMessageHandler.DynamicInvoke();
                 }
                 return;
             }
 
             // Link the node to the project file.
-            this.BindReferenceData();
+            BindReferenceData();
 
             // At this point force the item to be refreshed
-            this.ItemNode.RefreshProperties();
+            ItemNode.RefreshProperties();
 
             referencesFolder.AddChild(this);
-
-            return;
         }
 
         /// <summary>
-        /// Refreshes a reference by re-resolving it and redrawing the icon.
+        ///     Refreshes a reference by re-resolving it and redrawing the icon.
         /// </summary>
         internal virtual void RefreshReference()
         {
-            this.ResolveReference();
-            this.ReDraw(UIHierarchyElement.Icon);
+            ResolveReference();
+            ReDraw(UIHierarchyElement.Icon);
         }
 
         /// <summary>
-        /// Resolves references.
+        ///     Resolves references.
         /// </summary>
         protected virtual void ResolveReference()
         {
-
         }
 
         /// <summary>
-        /// Validates that a reference can be added.
+        ///     Validates that a reference can be added.
         /// </summary>
         /// <param name="errorHandler">A CannotAddReferenceErrorMessage delegate to show the error message.</param>
         /// <returns>true if the reference can be added.</returns>
@@ -268,7 +264,7 @@ namespace VsTeXProject.VisualStudio.Project
         {
             // When this method is called this refererence has not yet been added to the hierarchy, only instantiated.
             errorHandler = null;
-            if(this.IsAlreadyAdded())
+            if (IsAlreadyAdded())
             {
                 return false;
             }
@@ -277,7 +273,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Checks if a reference is already added. The method parses all references and compares the Url.
+        ///     Checks if a reference is already added. The method parses all references and compares the Url.
         /// </summary>
         /// <returns>true if the assembly has already been added.</returns>
         protected bool IsAlreadyAdded()
@@ -287,22 +283,23 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Checks if a reference is already added. The method parses all references and compares the Url.
+        ///     Checks if a reference is already added. The method parses all references and compares the Url.
         /// </summary>
         /// <param name="existingEquivalentNode">The existing reference, if one is found.</param>
         /// <returns>true if the assembly has already been added.</returns>
         protected internal virtual bool IsAlreadyAdded(out ReferenceNode existingEquivalentNode)
         {
-            ReferenceContainerNode referencesFolder = this.ProjectMgr.FindChild(ReferenceContainerNode.ReferencesNodeVirtualName) as ReferenceContainerNode;
+            var referencesFolder =
+                ProjectMgr.FindChild(ReferenceContainerNode.ReferencesNodeVirtualName) as ReferenceContainerNode;
             Debug.Assert(referencesFolder != null, "Could not find the References node");
 
-            for(HierarchyNode n = referencesFolder.FirstChild; n != null; n = n.NextSibling)
+            for (var n = referencesFolder.FirstChild; n != null; n = n.NextSibling)
             {
-                ReferenceNode referenceNode = n as ReferenceNode;
-                if(null != referenceNode)
+                var referenceNode = n as ReferenceNode;
+                if (null != referenceNode)
                 {
                     // We check if the Url of the assemblies is the same.
-                    if(NativeMethods.IsSamePath(referenceNode.Url, this.Url))
+                    if (NativeMethods.IsSamePath(referenceNode.Url, Url))
                     {
                         existingEquivalentNode = referenceNode;
                         return true;
@@ -316,45 +313,45 @@ namespace VsTeXProject.VisualStudio.Project
 
 
         /// <summary>
-        /// Shows the Object Browser
+        ///     Shows the Object Browser
         /// </summary>
         /// <returns></returns>
         protected virtual int ShowObjectBrowser()
         {
-            if(String.IsNullOrEmpty(this.Url) || !File.Exists(this.Url))
+            if (string.IsNullOrEmpty(Url) || !File.Exists(Url))
             {
-                return (int)OleConstants.OLECMDERR_E_NOTSUPPORTED;
+                return (int) OleConstants.OLECMDERR_E_NOTSUPPORTED;
             }
 
             // Request unmanaged code permission in order to be able to creaet the unmanaged memory representing the guid.
             new SecurityPermission(SecurityPermissionFlag.UnmanagedCode).Demand();
 
-            Guid guid = VSConstants.guidCOMPLUSLibrary;
-            IntPtr ptr = System.Runtime.InteropServices.Marshal.AllocCoTaskMem(guid.ToByteArray().Length);
+            var guid = VSConstants.guidCOMPLUSLibrary;
+            var ptr = Marshal.AllocCoTaskMem(guid.ToByteArray().Length);
 
-            System.Runtime.InteropServices.Marshal.StructureToPtr(guid, ptr, false);
-            int returnValue = VSConstants.S_OK;
+            Marshal.StructureToPtr(guid, ptr, false);
+            var returnValue = VSConstants.S_OK;
             try
             {
-                VSOBJECTINFO[] objInfo = new VSOBJECTINFO[1];
+                var objInfo = new VSOBJECTINFO[1];
 
                 objInfo[0].pguidLib = ptr;
-                objInfo[0].pszLibName = this.Url;
+                objInfo[0].pszLibName = Url;
 
-                IVsObjBrowser objBrowser = this.ProjectMgr.Site.GetService(typeof(SVsObjBrowser)) as IVsObjBrowser;
+                var objBrowser = ProjectMgr.Site.GetService(typeof (SVsObjBrowser)) as IVsObjBrowser;
 
                 ErrorHandler.ThrowOnFailure(objBrowser.NavigateTo(objInfo, 0));
             }
-            catch(COMException e)
+            catch (COMException e)
             {
                 Trace.WriteLine("Exception" + e.ErrorCode);
                 returnValue = e.ErrorCode;
             }
             finally
             {
-                if(ptr != IntPtr.Zero)
+                if (ptr != IntPtr.Zero)
                 {
-                    System.Runtime.InteropServices.Marshal.FreeCoTaskMem(ptr);
+                    Marshal.FreeCoTaskMem(ptr);
                 }
             }
 
@@ -363,7 +360,7 @@ namespace VsTeXProject.VisualStudio.Project
 
         protected override bool CanDeleteItem(__VSDELETEITEMOPERATION deleteOperation)
         {
-            if(deleteOperation == __VSDELETEITEMOPERATION.DELITEMOP_RemoveFromProject)
+            if (deleteOperation == __VSDELETEITEMOPERATION.DELITEMOP_RemoveFromProject)
             {
                 return true;
             }

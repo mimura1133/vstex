@@ -47,25 +47,42 @@ a particular purpose and non-infringement.
 ********************************************************************************************/
 
 using System;
-using Microsoft.VisualStudio.Shell.Interop;
+using System.Diagnostics.CodeAnalysis;
+using EnvDTE;
 using VSLangProj;
-using Microsoft.VisualStudio;
 
 namespace VsTeXProject.VisualStudio.Project.Automation
 {
     public class OABuildManager : ConnectionPointContainer,
-                                    IEventSource<_dispBuildManagerEvents>,
-                                    BuildManager,
-                                    BuildManagerEvents
+        IEventSource<_dispBuildManagerEvents>,
+        BuildManager,
+        BuildManagerEvents
     {
-        private ProjectNode projectManager;
+        private readonly ProjectNode projectManager;
 
         public OABuildManager(ProjectNode project)
         {
             projectManager = project;
-            AddEventSource<_dispBuildManagerEvents>(this as IEventSource<_dispBuildManagerEvents>);
+            AddEventSource(this);
         }
 
+        protected virtual void OnDesignTimeOutputDeleted(string outputMoniker)
+        {
+            var handlers = DesignTimeOutputDeleted;
+            if (handlers != null)
+            {
+                handlers(outputMoniker);
+            }
+        }
+
+        protected virtual void OnDesignTimeOutputDirty(string outputMoniker)
+        {
+            var handlers = DesignTimeOutputDirty;
+            if (handlers != null)
+            {
+                handlers(outputMoniker);
+            }
+        }
 
         #region BuildManager Members
 
@@ -79,18 +96,18 @@ namespace VsTeXProject.VisualStudio.Project.Automation
             get { return projectManager.GetAutomationObject() as EnvDTE.Project; }
         }
 
-        public virtual EnvDTE.DTE DTE
+        public virtual DTE DTE
         {
-            get { return projectManager.Site.GetService(typeof(EnvDTE.DTE)) as EnvDTE.DTE; }
+            get { return projectManager.Site.GetService(typeof (DTE)) as DTE; }
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
+        [SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
         public virtual object DesignTimeOutputMonikers
         {
             get { throw new NotImplementedException(); }
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
+        [SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
         public virtual object Parent
         {
             get { throw new NotImplementedException(); }
@@ -110,34 +127,16 @@ namespace VsTeXProject.VisualStudio.Project.Automation
 
         void IEventSource<_dispBuildManagerEvents>.OnSinkAdded(_dispBuildManagerEvents sink)
         {
-            DesignTimeOutputDeleted += new _dispBuildManagerEvents_DesignTimeOutputDeletedEventHandler(sink.DesignTimeOutputDeleted);
-            DesignTimeOutputDirty += new _dispBuildManagerEvents_DesignTimeOutputDirtyEventHandler(sink.DesignTimeOutputDirty);
+            DesignTimeOutputDeleted += sink.DesignTimeOutputDeleted;
+            DesignTimeOutputDirty += sink.DesignTimeOutputDirty;
         }
 
         void IEventSource<_dispBuildManagerEvents>.OnSinkRemoved(_dispBuildManagerEvents sink)
         {
-            DesignTimeOutputDeleted -= new _dispBuildManagerEvents_DesignTimeOutputDeletedEventHandler(sink.DesignTimeOutputDeleted);
-            DesignTimeOutputDirty -= new _dispBuildManagerEvents_DesignTimeOutputDirtyEventHandler(sink.DesignTimeOutputDirty);
+            DesignTimeOutputDeleted -= sink.DesignTimeOutputDeleted;
+            DesignTimeOutputDirty -= sink.DesignTimeOutputDirty;
         }
 
         #endregion
-
-        protected virtual void OnDesignTimeOutputDeleted(string outputMoniker)
-        {
-            var handlers = this.DesignTimeOutputDeleted;
-            if (handlers != null)
-            {
-                handlers(outputMoniker);
-            }
-        }
-
-        protected virtual void OnDesignTimeOutputDirty(string outputMoniker)
-        {
-            var handlers = this.DesignTimeOutputDirty;
-            if (handlers != null)
-            {
-                handlers(outputMoniker);
-            }
-        }
     }
 }

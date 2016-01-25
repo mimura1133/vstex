@@ -186,4 +186,10 @@
   <data name="TeXProcessorDescription" xml:space="preserve">
     <value>The processor used to build.</value>
   </data>
+  <data name="ToolsPath" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="ToolsPathDescription" xml:space="preserve">
+    <value>The path of contains processor programs. (If set the blank, find in the %PATH%)</value>
+  </data>
 </root>

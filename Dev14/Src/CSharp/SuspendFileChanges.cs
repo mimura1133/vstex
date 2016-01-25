@@ -48,44 +48,44 @@ a particular purpose and non-infringement.
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
-using IServiceProvider = System.IServiceProvider;
 using ShellConstants = Microsoft.VisualStudio.Shell.Interop.Constants;
 
 namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
-    /// helper to make the editor ignore external changes
+    ///     helper to make the editor ignore external changes
     /// </summary>
     internal class SuspendFileChanges
     {
-        private string documentFileName;
+        private readonly string documentFileName;
+
+        private IVsDocDataFileChangeControl fileChangeControl;
 
         private bool isSuspending;
 
-        private IServiceProvider site;
-
-        private IVsDocDataFileChangeControl fileChangeControl;
+        private readonly IServiceProvider site;
 
         public SuspendFileChanges(IServiceProvider site, string document)
         {
             this.site = site;
-            this.documentFileName = document;
+            documentFileName = document;
         }
 
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1800:DoNotCastUnnecessarily")]
+        [SuppressMessage("Microsoft.Performance", "CA1800:DoNotCastUnnecessarily")]
         public void Suspend()
         {
-            if(this.isSuspending)
+            if (isSuspending)
                 return;
 
-            IntPtr docData = IntPtr.Zero;
+            var docData = IntPtr.Zero;
             try
             {
-                IVsRunningDocumentTable rdt = this.site.GetService(typeof(SVsRunningDocumentTable)) as IVsRunningDocumentTable;
+                var rdt = site.GetService(typeof (SVsRunningDocumentTable)) as IVsRunningDocumentTable;
 
                 IVsHierarchy hierarchy;
                 uint itemId;
@@ -93,67 +93,67 @@ namespace VsTeXProject.VisualStudio.Project
                 IVsFileChangeEx fileChange;
 
 
-                if(rdt == null) return;
+                if (rdt == null) return;
 
-                ErrorHandler.ThrowOnFailure(rdt.FindAndLockDocument((uint)_VSRDTFLAGS.RDT_NoLock, this.documentFileName, out hierarchy, out itemId, out docData, out docCookie));
+                ErrorHandler.ThrowOnFailure(rdt.FindAndLockDocument((uint) _VSRDTFLAGS.RDT_NoLock, documentFileName,
+                    out hierarchy, out itemId, out docData, out docCookie));
 
-                if((docCookie == (uint)ShellConstants.VSDOCCOOKIE_NIL) || docData == IntPtr.Zero)
+                if ((docCookie == (uint) ShellConstants.VSDOCCOOKIE_NIL) || docData == IntPtr.Zero)
                     return;
 
-                fileChange = this.site.GetService(typeof(SVsFileChangeEx)) as IVsFileChangeEx;
+                fileChange = site.GetService(typeof (SVsFileChangeEx)) as IVsFileChangeEx;
 
-                if(fileChange != null)
+                if (fileChange != null)
                 {
-                    this.isSuspending = true;
-                    ErrorHandler.ThrowOnFailure(fileChange.IgnoreFile(0, this.documentFileName, 1));
-                    if(docData != IntPtr.Zero)
+                    isSuspending = true;
+                    ErrorHandler.ThrowOnFailure(fileChange.IgnoreFile(0, documentFileName, 1));
+                    if (docData != IntPtr.Zero)
                     {
                         IVsPersistDocData persistDocData = null;
 
                         // if interface is not supported, return null
-                        object unknown = Marshal.GetObjectForIUnknown(docData);
-                        if(unknown is IVsPersistDocData)
+                        var unknown = Marshal.GetObjectForIUnknown(docData);
+                        if (unknown is IVsPersistDocData)
                         {
-                            persistDocData = (IVsPersistDocData)unknown;
-                            if(persistDocData is IVsDocDataFileChangeControl)
+                            persistDocData = (IVsPersistDocData) unknown;
+                            if (persistDocData is IVsDocDataFileChangeControl)
                             {
-                                this.fileChangeControl = (IVsDocDataFileChangeControl)persistDocData;
-                                if(this.fileChangeControl != null)
+                                fileChangeControl = (IVsDocDataFileChangeControl) persistDocData;
+                                if (fileChangeControl != null)
                                 {
-                                    ErrorHandler.ThrowOnFailure(this.fileChangeControl.IgnoreFileChanges(1));
+                                    ErrorHandler.ThrowOnFailure(fileChangeControl.IgnoreFileChanges(1));
                                 }
                             }
                         }
                     }
                 }
             }
-            catch(InvalidCastException e)
+            catch (InvalidCastException e)
             {
                 Trace.WriteLine("Exception" + e.Message);
             }
             finally
             {
-                if(docData != IntPtr.Zero)
+                if (docData != IntPtr.Zero)
                 {
                     Marshal.Release(docData);
                 }
             }
-            return;
         }
 
         public void Resume()
         {
-            if(!this.isSuspending)
+            if (!isSuspending)
                 return;
             IVsFileChangeEx fileChange;
-            fileChange = this.site.GetService(typeof(SVsFileChangeEx)) as IVsFileChangeEx;
-            if(fileChange != null)
+            fileChange = site.GetService(typeof (SVsFileChangeEx)) as IVsFileChangeEx;
+            if (fileChange != null)
             {
-                this.isSuspending = false;
-                ErrorHandler.ThrowOnFailure(fileChange.IgnoreFile(0, this.documentFileName, 0));
-                if(this.fileChangeControl != null)
+                isSuspending = false;
+                ErrorHandler.ThrowOnFailure(fileChange.IgnoreFile(0, documentFileName, 0));
+                if (fileChangeControl != null)
                 {
-                    ErrorHandler.ThrowOnFailure(this.fileChangeControl.IgnoreFileChanges(0));
+                    ErrorHandler.ThrowOnFailure(fileChangeControl.IgnoreFileChanges(0));
                 }
             }
         }

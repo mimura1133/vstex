@@ -48,43 +48,43 @@ a particular purpose and non-infringement.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
-using Microsoft.VisualStudio;
 
 namespace VsTeXProject.VisualStudio.Project
 {
     public class ImageHandler : IDisposable
     {
-        private ImageList imageList;
-        private List<IntPtr> iconHandles;
         private static volatile object Mutex;
+        private List<IntPtr> iconHandles;
+        private ImageList imageList;
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes the <see cref="RDTListener"/> class.
+        ///     Initializes the <see cref="RDTListener" /> class.
         /// </summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline")]
+        [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline")]
         static ImageHandler()
         {
             Mutex = new object();
         }
 
         /// <summary>
-        /// Builds an empty ImageHandler object.
+        ///     Builds an empty ImageHandler object.
         /// </summary>
         public ImageHandler()
         {
         }
 
         /// <summary>
-        /// Builds an ImageHandler object from a Stream providing the bitmap that
-        /// stores the images for the image list.
+        ///     Builds an ImageHandler object from a Stream providing the bitmap that
+        ///     stores the images for the image list.
         /// </summary>
         public ImageHandler(Stream resourceStream)
         {
-            if(null == resourceStream)
+            if (null == resourceStream)
             {
                 throw new ArgumentNullException("resourceStream");
             }
@@ -92,11 +92,11 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Builds an ImageHandler object from an ImageList object.
+        ///     Builds an ImageHandler object from an ImageList object.
         /// </summary>
         public ImageHandler(ImageList list)
         {
-            if(null == list)
+            if (null == list)
             {
                 throw new ArgumentNullException("list");
             }
@@ -104,52 +104,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Closes the ImageHandler object freeing its resources.
-        /// </summary>
-        public void Close()
-        {
-            if(null != iconHandles)
-            {
-                foreach(IntPtr hnd in iconHandles)
-                {
-                    if(hnd != IntPtr.Zero)
-                    {
-                        NativeMethods.DestroyIcon(hnd);
-                    }
-                }
-                iconHandles = null;
-            }
-
-            if(null != imageList)
-            {
-                imageList.Dispose();
-                imageList = null;
-            }
-        }
-
-        /// <summary>
-        /// Add an image to the ImageHandler.
-        /// </summary>
-        /// <param name="image">the image object to be added.</param>
-        public void AddImage(Image image)
-        {
-            if(null == image)
-            {
-                throw new ArgumentNullException("image");
-            }
-            if(null == imageList)
-            {
-                imageList = new ImageList();
-            }
-            imageList.Images.Add(image);
-            if(null != iconHandles)
-            {
-                iconHandles.Add(IntPtr.Zero);
-            }
-        }
-
-        /// <summary>
-        /// Get or set the ImageList object for this ImageHandler.
+        ///     Get or set the ImageList object for this ImageHandler.
         /// </summary>
         public ImageList ImageList
         {
@@ -161,36 +116,94 @@ namespace VsTeXProject.VisualStudio.Project
             }
         }
 
+        #region IDisposable Members
+
         /// <summary>
-        /// Returns the handle to an icon build from the image of index
-        /// iconIndex in the image list.
+        ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
+
+        /// <summary>
+        ///     Closes the ImageHandler object freeing its resources.
+        /// </summary>
+        public void Close()
+        {
+            if (null != iconHandles)
+            {
+                foreach (var hnd in iconHandles)
+                {
+                    if (hnd != IntPtr.Zero)
+                    {
+                        NativeMethods.DestroyIcon(hnd);
+                    }
+                }
+                iconHandles = null;
+            }
+
+            if (null != imageList)
+            {
+                imageList.Dispose();
+                imageList = null;
+            }
+        }
+
+        /// <summary>
+        ///     Add an image to the ImageHandler.
+        /// </summary>
+        /// <param name="image">the image object to be added.</param>
+        public void AddImage(Image image)
+        {
+            if (null == image)
+            {
+                throw new ArgumentNullException("image");
+            }
+            if (null == imageList)
+            {
+                imageList = new ImageList();
+            }
+            imageList.Images.Add(image);
+            if (null != iconHandles)
+            {
+                iconHandles.Add(IntPtr.Zero);
+            }
+        }
+
+        /// <summary>
+        ///     Returns the handle to an icon build from the image of index
+        ///     iconIndex in the image list.
         /// </summary>
         public IntPtr GetIconHandle(int iconIndex)
         {
             // Verify that the object is in a consistent state.
-            if((null == imageList))
+            if (null == imageList)
             {
                 throw new InvalidOperationException();
             }
             // Make sure that the list of handles is initialized.
-            if(null == iconHandles)
+            if (null == iconHandles)
             {
                 InitHandlesList();
             }
 
             // Verify that the index is inside the expected range.
-            if((iconIndex < 0) || (iconIndex >= iconHandles.Count))
+            if ((iconIndex < 0) || (iconIndex >= iconHandles.Count))
             {
                 throw new ArgumentOutOfRangeException("iconIndex");
             }
 
             // Check if the icon is in the cache.
-            if(IntPtr.Zero == iconHandles[iconIndex])
+            if (IntPtr.Zero == iconHandles[iconIndex])
             {
-                Bitmap bitmap = imageList.Images[iconIndex] as Bitmap;
+                var bitmap = imageList.Images[iconIndex] as Bitmap;
                 // If the image is not a bitmap, then we can not build the icon,
                 // so we have to return a null handle.
-                if(null == bitmap)
+                if (null == bitmap)
                 {
                     return IntPtr.Zero;
                 }
@@ -204,36 +217,24 @@ namespace VsTeXProject.VisualStudio.Project
         private void InitHandlesList()
         {
             iconHandles = new List<IntPtr>(imageList.Images.Count);
-            for(int i = 0; i < imageList.Images.Count; ++i)
+            for (var i = 0; i < imageList.Images.Count; ++i)
             {
                 iconHandles.Add(IntPtr.Zero);
             }
         }
 
-        #region IDisposable Members
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-        #endregion
-
         private void Dispose(bool disposing)
         {
-            if(!this.isDisposed)
+            if (!isDisposed)
             {
-                lock(Mutex)
+                lock (Mutex)
                 {
-                    if(disposing)
+                    if (disposing)
                     {
-                        this.imageList.Dispose();
+                        imageList.Dispose();
                     }
 
-                    this.isDisposed = true;
+                    isDisposed = true;
                 }
             }
         }

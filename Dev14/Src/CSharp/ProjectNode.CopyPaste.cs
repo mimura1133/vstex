@@ -47,133 +47,156 @@ a particular purpose and non-infringement.
 ********************************************************************************************/
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Permissions;
 using System.Text;
 using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using VSLangProj;
 using IOleDataObject = Microsoft.VisualStudio.OLE.Interop.IDataObject;
 using OleConstants = Microsoft.VisualStudio.OLE.Interop.Constants;
 
 namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
-    /// Manages the CopyPaste and Drag and Drop scenarios for a Project.
+    ///     Manages the CopyPaste and Drag and Drop scenarios for a Project.
     /// </summary>
     /// <remarks>This is a partial class.</remarks>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1506:AvoidExcessiveClassCoupling")]
+    [SuppressMessage("Microsoft.Maintainability", "CA1506:AvoidExcessiveClassCoupling")]
     public partial class ProjectNode : IVsUIHierWinClipboardHelperEvents
     {
         #region fields
+
         private uint copyPasteCookie;
         private DropDataType dropDataType;
+
         #endregion
 
         #region override of IVsHierarchyDropDataTarget methods
+
         /// <summary>
-        /// Called as soon as the mouse drags an item over a new hierarchy or hierarchy window
+        ///     Called as soon as the mouse drags an item over a new hierarchy or hierarchy window
         /// </summary>
         /// <param name="pDataObject">reference to interface IDataObject of the item being dragged</param>
-        /// <param name="grfKeyState">Current state of the keyboard and the mouse modifier keys. See docs for a list of possible values</param>
+        /// <param name="grfKeyState">
+        ///     Current state of the keyboard and the mouse modifier keys. See docs for a list of possible
+        ///     values
+        /// </param>
         /// <param name="itemid">Item identifier for the item currently being dragged</param>
         /// <param name="pdwEffect">On entry, a pointer to the current DropEffect. On return, must contain the new valid DropEffect</param>
         /// <returns>If the method succeeds, it returns S_OK. If it fails, it returns an error code.</returns>
         public override int DragEnter(IOleDataObject pDataObject, uint grfKeyState, uint itemid, ref uint pdwEffect)
         {
-            pdwEffect = (uint)DropEffect.None;
+            pdwEffect = (uint) DropEffect.None;
 
-            if(this.SourceDraggedOrCutOrCopied)
+            if (SourceDraggedOrCutOrCopied)
             {
                 return VSConstants.S_OK;
             }
 
-            this.dropDataType = QueryDropDataType(pDataObject);
-            if(this.dropDataType != DropDataType.None)
+            dropDataType = QueryDropDataType(pDataObject);
+            if (dropDataType != DropDataType.None)
             {
-                pdwEffect = (uint)this.QueryDropEffect(this.dropDataType, grfKeyState);
+                pdwEffect = (uint) QueryDropEffect(dropDataType, grfKeyState);
             }
 
             return VSConstants.S_OK;
         }
 
         /// <summary>
-        /// Called when one or more items are dragged out of the hierarchy or hierarchy window, or when the drag-and-drop operation is cancelled or completed.
+        ///     Called when one or more items are dragged out of the hierarchy or hierarchy window, or when the drag-and-drop
+        ///     operation is cancelled or completed.
         /// </summary>
         /// <returns>If the method succeeds, it returns S_OK. If it fails, it returns an error code.</returns>
         public override int DragLeave()
         {
-            this.dropDataType = DropDataType.None;
+            dropDataType = DropDataType.None;
             return VSConstants.S_OK;
         }
 
         /// <summary>
-        /// Called when one or more items are dragged over the target hierarchy or hierarchy window. 
+        ///     Called when one or more items are dragged over the target hierarchy or hierarchy window.
         /// </summary>
-        /// <param name="grfKeyState">Current state of the keyboard keys and the mouse modifier buttons. See <seealso cref="IVsHierarchyDropDataTarget"/></param>
+        /// <param name="grfKeyState">
+        ///     Current state of the keyboard keys and the mouse modifier buttons. See
+        ///     <seealso cref="IVsHierarchyDropDataTarget" />
+        /// </param>
         /// <param name="itemid">Item identifier of the drop data target over which the item is being dragged</param>
-        /// <param name="pdwEffect"> On entry, reference to the value of the pdwEffect parameter of the IVsHierarchy object, identifying all effects that the hierarchy supports. 
-        /// On return, the pdwEffect parameter must contain one of the effect flags that indicate the result of the drop operation. For a list of pwdEffects values, see <seealso cref="DragEnter"/></param>
+        /// <param name="pdwEffect">
+        ///     On entry, reference to the value of the pdwEffect parameter of the IVsHierarchy object, identifying all effects
+        ///     that the hierarchy supports.
+        ///     On return, the pdwEffect parameter must contain one of the effect flags that indicate the result of the drop
+        ///     operation. For a list of pwdEffects values, see <seealso cref="DragEnter" />
+        /// </param>
         /// <returns>If the method succeeds, it returns S_OK. If it fails, it returns an error code.</returns>
         public override int DragOver(uint grfKeyState, uint itemid, ref uint pdwEffect)
         {
-            pdwEffect = (uint)DropEffect.None;
+            pdwEffect = (uint) DropEffect.None;
 
             // Dragging items to a project that is being debugged is not supported
             // (see VSWhidbey 144785)            
-            DBGMODE dbgMode = VsShellUtilities.GetDebugMode(this.Site) & ~DBGMODE.DBGMODE_EncMask;
-            if(dbgMode == DBGMODE.DBGMODE_Run || dbgMode == DBGMODE.DBGMODE_Break)
+            var dbgMode = VsShellUtilities.GetDebugMode(Site) & ~DBGMODE.DBGMODE_EncMask;
+            if (dbgMode == DBGMODE.DBGMODE_Run || dbgMode == DBGMODE.DBGMODE_Break)
             {
                 return VSConstants.S_OK;
             }
 
-            if(this.isClosed || this.site == null)
+            if (IsClosed || site == null)
             {
                 return VSConstants.E_UNEXPECTED;
             }
 
             // We should also analyze if the node being dragged over can accept the drop.
-            if(!this.CanTargetNodeAcceptDrop(itemid))
+            if (!CanTargetNodeAcceptDrop(itemid))
             {
                 return VSConstants.E_NOTIMPL;
             }
 
-            if(this.dropDataType != DropDataType.None)
+            if (dropDataType != DropDataType.None)
             {
-                pdwEffect = (uint)this.QueryDropEffect(this.dropDataType, grfKeyState);
+                pdwEffect = (uint) QueryDropEffect(dropDataType, grfKeyState);
             }
 
             return VSConstants.S_OK;
         }
 
         /// <summary>
-        /// Called when one or more items are dropped into the target hierarchy or hierarchy window when the mouse button is released.
+        ///     Called when one or more items are dropped into the target hierarchy or hierarchy window when the mouse button is
+        ///     released.
         /// </summary>
-        /// <param name="pDataObject">Reference to the IDataObject interface on the item being dragged. This data object contains the data being transferred in the drag-and-drop operation. 
-        /// If the drop occurs, then this data object (item) is incorporated into the target hierarchy or hierarchy window.</param>
-        /// <param name="grfKeyState">Current state of the keyboard and the mouse modifier keys. See <seealso cref="IVsHierarchyDropDataTarget"/></param>
+        /// <param name="pDataObject">
+        ///     Reference to the IDataObject interface on the item being dragged. This data object contains the data being
+        ///     transferred in the drag-and-drop operation.
+        ///     If the drop occurs, then this data object (item) is incorporated into the target hierarchy or hierarchy window.
+        /// </param>
+        /// <param name="grfKeyState">
+        ///     Current state of the keyboard and the mouse modifier keys. See
+        ///     <seealso cref="IVsHierarchyDropDataTarget" />
+        /// </param>
         /// <param name="itemid">Item identifier of the drop data target over which the item is being dragged</param>
-        /// <param name="pdwEffect">Visual effects associated with the drag-and drop-operation, such as a cursor, bitmap, and so on. 
-        /// The value of dwEffects passed to the source object via the OnDropNotify method is the value of pdwEffects returned by the Drop method</param>
+        /// <param name="pdwEffect">
+        ///     Visual effects associated with the drag-and drop-operation, such as a cursor, bitmap, and so on.
+        ///     The value of dwEffects passed to the source object via the OnDropNotify method is the value of pdwEffects returned
+        ///     by the Drop method
+        /// </param>
         /// <returns>If the method succeeds, it returns S_OK. If it fails, it returns an error code. </returns>
         public override int Drop(IOleDataObject pDataObject, uint grfKeyState, uint itemid, ref uint pdwEffect)
         {
-            if(pDataObject == null)
+            if (pDataObject == null)
             {
                 return VSConstants.E_INVALIDARG;
             }
 
-            pdwEffect = (uint)DropEffect.None;
+            pdwEffect = (uint) DropEffect.None;
 
             // Get the node that is being dragged over and ask it which node should handle this call
-            HierarchyNode targetNode = NodeFromItemId(itemid);
-            if(targetNode != null)
+            var targetNode = NodeFromItemId(itemid);
+            if (targetNode != null)
             {
                 targetNode = targetNode.GetDragTargetHandlerNode();
             }
@@ -186,26 +209,26 @@ namespace VsTeXProject.VisualStudio.Project
             int returnValue;
             try
             {
-                DropDataType dropDataType = DropDataType.None;
+                var dropDataType = DropDataType.None;
                 dropDataType = ProcessSelectionDataObject(pDataObject, targetNode);
-                pdwEffect = (uint)this.QueryDropEffect(dropDataType, grfKeyState);
+                pdwEffect = (uint) QueryDropEffect(dropDataType, grfKeyState);
 
                 // If it is a drop from windows and we get any kind of error we return S_FALSE and dropeffect none. This
                 // prevents bogus messages from the shell from being displayed
-                returnValue = (dropDataType != DropDataType.Shell) ? VSConstants.E_FAIL : VSConstants.S_OK;
+                returnValue = dropDataType != DropDataType.Shell ? VSConstants.E_FAIL : VSConstants.S_OK;
             }
-            catch(System.IO.FileNotFoundException e)
+            catch (FileNotFoundException e)
             {
                 Trace.WriteLine("Exception : " + e.Message);
 
-                if(!Utilities.IsInAutomationFunction(this.Site))
+                if (!Utilities.IsInAutomationFunction(Site))
                 {
-                    string message = e.Message;
-                    string title = string.Empty;
-                    OLEMSGICON icon = OLEMSGICON.OLEMSGICON_CRITICAL;
-                    OLEMSGBUTTON buttons = OLEMSGBUTTON.OLEMSGBUTTON_OK;
-                    OLEMSGDEFBUTTON defaultButton = OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST;
-                    VsShellUtilities.ShowMessageBox(this.Site, title, message, icon, buttons, defaultButton);
+                    var message = e.Message;
+                    var title = string.Empty;
+                    var icon = OLEMSGICON.OLEMSGICON_CRITICAL;
+                    var buttons = OLEMSGBUTTON.OLEMSGBUTTON_OK;
+                    var defaultButton = OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST;
+                    VsShellUtilities.ShowMessageBox(Site, title, message, icon, buttons, defaultButton);
                 }
 
                 returnValue = VSConstants.E_FAIL;
@@ -213,96 +236,111 @@ namespace VsTeXProject.VisualStudio.Project
 
             return returnValue;
         }
+
         #endregion
 
         #region override of IVsHierarchyDropDataSource2 methods
+
         /// <summary>
-        /// Returns information about one or more of the items being dragged
+        ///     Returns information about one or more of the items being dragged
         /// </summary>
-        /// <param name="pdwOKEffects">Pointer to a DWORD value describing the effects displayed while the item is being dragged, 
-        /// such as cursor icons that change during the drag-and-drop operation. 
-        /// For example, if the item is dragged over an invalid target point 
-        /// (such as the item's original location), the cursor icon changes to a circle with a line through it. 
-        /// Similarly, if the item is dragged over a valid target point, the cursor icon changes to a file or folder.</param>
-        /// <param name="ppDataObject">Pointer to the IDataObject interface on the item being dragged. 
-        /// This data object contains the data being transferred in the drag-and-drop operation. 
-        /// If the drop occurs, then this data object (item) is incorporated into the target hierarchy or hierarchy window.</param>
+        /// <param name="pdwOKEffects">
+        ///     Pointer to a DWORD value describing the effects displayed while the item is being dragged,
+        ///     such as cursor icons that change during the drag-and-drop operation.
+        ///     For example, if the item is dragged over an invalid target point
+        ///     (such as the item's original location), the cursor icon changes to a circle with a line through it.
+        ///     Similarly, if the item is dragged over a valid target point, the cursor icon changes to a file or folder.
+        /// </param>
+        /// <param name="ppDataObject">
+        ///     Pointer to the IDataObject interface on the item being dragged.
+        ///     This data object contains the data being transferred in the drag-and-drop operation.
+        ///     If the drop occurs, then this data object (item) is incorporated into the target hierarchy or hierarchy window.
+        /// </param>
         /// <param name="ppDropSource">Pointer to the IDropSource interface of the item being dragged.</param>
         /// <returns>If the method succeeds, it returns S_OK. If it fails, it returns an error code.</returns>
-        public override int GetDropInfo(out uint pdwOKEffects, out IOleDataObject ppDataObject, out IDropSource ppDropSource)
+        public override int GetDropInfo(out uint pdwOKEffects, out IOleDataObject ppDataObject,
+            out IDropSource ppDropSource)
         {
             //init out params
-            pdwOKEffects = (uint)DropEffect.None;
+            pdwOKEffects = (uint) DropEffect.None;
             ppDataObject = null;
             ppDropSource = null;
 
             IOleDataObject dataObject = PackageSelectionDataObject(false);
-            if(dataObject == null)
+            if (dataObject == null)
             {
                 return VSConstants.E_NOTIMPL;
             }
 
-            this.SourceDraggedOrCutOrCopied = true;
+            SourceDraggedOrCutOrCopied = true;
 
-            pdwOKEffects = (uint)(DropEffect.Move | DropEffect.Copy);
+            pdwOKEffects = (uint) (DropEffect.Move | DropEffect.Copy);
 
             ppDataObject = dataObject;
             return VSConstants.S_OK;
         }
 
         /// <summary>
-        /// Notifies clients that the dragged item was dropped. 
+        ///     Notifies clients that the dragged item was dropped.
         /// </summary>
         /// <param name="fDropped">If true, then the dragged item was dropped on the target. If false, then the drop did not occur.</param>
-        /// <param name="dwEffects">Visual effects associated with the drag-and-drop operation, such as cursors, bitmaps, and so on. 
-        /// The value of dwEffects passed to the source object via OnDropNotify method is the value of pdwEffects returned by Drop method.</param>
+        /// <param name="dwEffects">
+        ///     Visual effects associated with the drag-and-drop operation, such as cursors, bitmaps, and so on.
+        ///     The value of dwEffects passed to the source object via OnDropNotify method is the value of pdwEffects returned by
+        ///     Drop method.
+        /// </param>
         /// <returns>If the method succeeds, it returns S_OK. If it fails, it returns an error code. </returns>
         public override int OnDropNotify(int fDropped, uint dwEffects)
         {
-            if(!this.SourceDraggedOrCutOrCopied)
+            if (!SourceDraggedOrCutOrCopied)
             {
                 return VSConstants.S_FALSE;
             }
 
-            this.CleanupSelectionDataObject(fDropped != 0, false, dwEffects == (uint)DropEffect.Move);
+            CleanupSelectionDataObject(fDropped != 0, false, dwEffects == (uint) DropEffect.Move);
 
-            this.SourceDraggedOrCutOrCopied = false;
+            SourceDraggedOrCutOrCopied = false;
 
             return VSConstants.S_OK;
         }
 
         /// <summary>
-        /// Allows the drag source to prompt to save unsaved items being dropped. 
-        /// Notifies the source hierarchy that information dragged from it is about to be dropped on a target. 
-        /// This method is called immediately after the mouse button is released on a drop. 
+        ///     Allows the drag source to prompt to save unsaved items being dropped.
+        ///     Notifies the source hierarchy that information dragged from it is about to be dropped on a target.
+        ///     This method is called immediately after the mouse button is released on a drop.
         /// </summary>
-        /// <param name="o">Reference to the IDataObject interface on the item being dragged. 
-        /// This data object contains the data being transferred in the drag-and-drop operation. 
-        /// If the drop occurs, then this data object (item) is incorporated into the hierarchy window of the new hierarchy.</param>
+        /// <param name="o">
+        ///     Reference to the IDataObject interface on the item being dragged.
+        ///     This data object contains the data being transferred in the drag-and-drop operation.
+        ///     If the drop occurs, then this data object (item) is incorporated into the hierarchy window of the new hierarchy.
+        /// </param>
         /// <param name="dwEffect">Current state of the keyboard and the mouse modifier keys.</param>
-        /// <param name="fCancelDrop">If true, then the drop is cancelled by the source hierarchy. If false, then the drop can continue.</param>
+        /// <param name="fCancelDrop">
+        ///     If true, then the drop is cancelled by the source hierarchy. If false, then the drop can
+        ///     continue.
+        /// </param>
         /// <returns>If the method succeeds, it returns S_OK. If it fails, it returns an error code. </returns>
         public override int OnBeforeDropNotify(IOleDataObject o, uint dwEffect, out int fCancelDrop)
         {
             // If there is nothing to be dropped just return that drop should be cancelled.
-            if(this.ItemsDraggedOrCutOrCopied == null)
+            if (ItemsDraggedOrCutOrCopied == null)
             {
                 fCancelDrop = 1;
                 return VSConstants.S_OK;
             }
 
             fCancelDrop = 0;
-            bool dirty = false;
-            foreach(HierarchyNode node in this.ItemsDraggedOrCutOrCopied)
+            var dirty = false;
+            foreach (var node in ItemsDraggedOrCutOrCopied)
             {
                 bool isDirty, isOpen, isOpenedByUs;
                 uint docCookie;
                 IVsPersistDocData ppIVsPersistDocData;
-                DocumentManager manager = node.GetDocumentManager();
-                if(manager != null)
+                var manager = node.GetDocumentManager();
+                if (manager != null)
                 {
                     manager.GetDocInfo(out isOpen, out isDirty, out isOpenedByUs, out docCookie, out ppIVsPersistDocData);
-                    if(isDirty && isOpenedByUs)
+                    if (isDirty && isOpenedByUs)
                     {
                         dirty = true;
                         break;
@@ -311,19 +349,19 @@ namespace VsTeXProject.VisualStudio.Project
             }
 
             // if there are no dirty docs we are ok to proceed
-            if(!dirty)
+            if (!dirty)
             {
                 return VSConstants.S_OK;
             }
 
             // Prompt to save if there are dirty docs
-            string message = SR.GetString(SR.SaveModifiedDocuments, CultureInfo.CurrentUICulture);
-            string title = string.Empty;
-            OLEMSGICON icon = OLEMSGICON.OLEMSGICON_WARNING;
-            OLEMSGBUTTON buttons = OLEMSGBUTTON.OLEMSGBUTTON_YESNOCANCEL;
-            OLEMSGDEFBUTTON defaultButton = OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST;
-            int result = VsShellUtilities.ShowMessageBox(Site, title, message, icon, buttons, defaultButton);
-            switch(result)
+            var message = SR.GetString(SR.SaveModifiedDocuments, CultureInfo.CurrentUICulture);
+            var title = string.Empty;
+            var icon = OLEMSGICON.OLEMSGICON_WARNING;
+            var buttons = OLEMSGBUTTON.OLEMSGBUTTON_YESNOCANCEL;
+            var defaultButton = OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST;
+            var result = VsShellUtilities.ShowMessageBox(Site, title, message, icon, buttons, defaultButton);
+            switch (result)
             {
                 case NativeMethods.IDYES:
                     break;
@@ -331,7 +369,8 @@ namespace VsTeXProject.VisualStudio.Project
                 case NativeMethods.IDNO:
                     return VSConstants.S_OK;
 
-                case NativeMethods.IDCANCEL: goto default;
+                case NativeMethods.IDCANCEL:
+                    goto default;
 
                 default:
                     fCancelDrop = 1;
@@ -339,10 +378,10 @@ namespace VsTeXProject.VisualStudio.Project
             }
 
             // Save all dirty documents
-            foreach(HierarchyNode node in this.ItemsDraggedOrCutOrCopied)
+            foreach (var node in ItemsDraggedOrCutOrCopied)
             {
-                DocumentManager manager = node.GetDocumentManager();
-                if(manager != null)
+                var manager = node.GetDocumentManager();
+                if (manager != null)
                 {
                     manager.Save(true);
                 }
@@ -354,107 +393,113 @@ namespace VsTeXProject.VisualStudio.Project
         #endregion
 
         #region IVsUIHierWinClipboardHelperEvents Members
+
         /// <summary>
-        /// Called after your cut/copied items has been pasted
+        ///     Called after your cut/copied items has been pasted
         /// </summary>
-        ///<param name="wasCut">If true, then the IDataObject has been successfully pasted into a target hierarchy. 
-        /// If false, then the cut or copy operation was cancelled.</param>
-        /// <param name="dropEffect">Visual effects associated with the drag and drop operation, such as cursors, bitmaps, and so on. 
-        /// These should be the same visual effects used in OnDropNotify</param>
+        /// <param name="wasCut">
+        ///     If true, then the IDataObject has been successfully pasted into a target hierarchy.
+        ///     If false, then the cut or copy operation was cancelled.
+        /// </param>
+        /// <param name="dropEffect">
+        ///     Visual effects associated with the drag and drop operation, such as cursors, bitmaps, and so on.
+        ///     These should be the same visual effects used in OnDropNotify
+        /// </param>
         /// <returns>If the method succeeds, it returns S_OK. If it fails, it returns an error code. </returns>
         public virtual int OnPaste(int wasCut, uint dropEffect)
         {
-            if(!this.SourceDraggedOrCutOrCopied)
+            if (!SourceDraggedOrCutOrCopied)
             {
                 return VSConstants.S_FALSE;
             }
 
-            if(dropEffect == (uint)DropEffect.None)
+            if (dropEffect == (uint) DropEffect.None)
             {
                 return OnClear(wasCut);
             }
 
-            this.CleanupSelectionDataObject(false, wasCut != 0, dropEffect == (uint)DropEffect.Move);
-            this.SourceDraggedOrCutOrCopied = false;
+            CleanupSelectionDataObject(false, wasCut != 0, dropEffect == (uint) DropEffect.Move);
+            SourceDraggedOrCutOrCopied = false;
             return VSConstants.S_OK;
         }
 
         /// <summary>
-        /// Called when your cut/copied operation is canceled
+        ///     Called when your cut/copied operation is canceled
         /// </summary>
-        /// <param name="wasCut">This flag informs the source that the Cut method was called (true), 
-        /// rather than Copy (false), so the source knows whether to "un-cut-highlight" the items that were cut.</param>
+        /// <param name="wasCut">
+        ///     This flag informs the source that the Cut method was called (true),
+        ///     rather than Copy (false), so the source knows whether to "un-cut-highlight" the items that were cut.
+        /// </param>
         /// <returns>If the method succeeds, it returns S_OK. If it fails, it returns an error code. </returns>
         public virtual int OnClear(int wasCut)
         {
-            if(!this.SourceDraggedOrCutOrCopied)
+            if (!SourceDraggedOrCutOrCopied)
             {
                 return VSConstants.S_FALSE;
             }
 
-            this.CleanupSelectionDataObject(false, wasCut != 0, false, true);
-            this.SourceDraggedOrCutOrCopied = false;
+            CleanupSelectionDataObject(false, wasCut != 0, false, true);
+            SourceDraggedOrCutOrCopied = false;
             return VSConstants.S_OK;
         }
+
         #endregion
 
         #region virtual methods
+
         /// <summary>
-        /// Determines if a node can accept drop opertaion.
+        ///     Determines if a node can accept drop opertaion.
         /// </summary>
         /// <param name="itemid">The id of the node.</param>
         /// <returns>true if the node acceots drag operation.</returns>
         protected internal virtual bool CanTargetNodeAcceptDrop(uint itemId)
         {
-            HierarchyNode targetNode = NodeFromItemId(itemId);
-            if(targetNode is ReferenceContainerNode || targetNode is ReferenceNode)
+            var targetNode = NodeFromItemId(itemId);
+            if (targetNode is ReferenceContainerNode || targetNode is ReferenceNode)
             {
                 return false;
             }
-            else
-            {
-                return true;
-            }
+            return true;
         }
 
         /// <summary>
-        /// Returns a dataobject from selected nodes
+        ///     Returns a dataobject from selected nodes
         /// </summary>
         /// <param name="cutHighlightItems">boolean that defines if the selected items must be cut</param>
         /// <returns>data object for selected items</returns>
         internal virtual DataObject PackageSelectionDataObject(bool cutHighlightItems)
         {
-            this.CleanupSelectionDataObject(false, false, false);
-            StringBuilder sb = new StringBuilder();
+            CleanupSelectionDataObject(false, false, false);
+            var sb = new StringBuilder();
 
             DataObject dataObject = null;
 
             try
             {
-                IList<HierarchyNode> selectedNodes = this.GetSelectedNodes();
-                if(selectedNodes != null)
+                var selectedNodes = GetSelectedNodes();
+                if (selectedNodes != null)
                 {
-                    this.InstantiateItemsDraggedOrCutOrCopiedList();
+                    InstantiateItemsDraggedOrCutOrCopiedList();
 
                     StringBuilder selectionContent = null;
 
                     // If there is a selection package the data
-                    if(selectedNodes.Count > 1)
+                    if (selectedNodes.Count > 1)
                     {
-                        foreach(HierarchyNode node in selectedNodes)
+                        foreach (var node in selectedNodes)
                         {
                             selectionContent = node.PrepareSelectedNodesForClipBoard();
-                            if(selectionContent != null)
+                            if (selectionContent != null)
                             {
                                 sb.Append(selectionContent);
                             }
                         }
                     }
-                    else if(selectedNodes.Count == 1)
+                    else if (selectedNodes.Count == 1)
                     {
-                        HierarchyNode selectedNode = selectedNodes[0];
+                        var selectedNode = selectedNodes[0];
                         selectionContent = selectedNode.PrepareSelectedNodesForClipBoard();
-                        if(selectionContent != null)
+                        if (selectionContent != null)
                         {
                             sb.Append(selectionContent);
                         }
@@ -462,43 +507,45 @@ namespace VsTeXProject.VisualStudio.Project
                 }
 
                 // Add the project items first.
-                IntPtr ptrToItems = this.PackageSelectionData(sb, false);
-                if(ptrToItems == IntPtr.Zero)
+                var ptrToItems = PackageSelectionData(sb, false);
+                if (ptrToItems == IntPtr.Zero)
                 {
                     return null;
                 }
 
-                FORMATETC fmt = DragDropHelper.CreateFormatEtc(DragDropHelper.CF_VSSTGPROJECTITEMS);
+                var fmt = DragDropHelper.CreateFormatEtc(DragDropHelper.CF_VSSTGPROJECTITEMS);
                 dataObject = new DataObject();
                 dataObject.SetData(fmt, ptrToItems);
 
                 // Now add the project path that sourced data. We just write the project file path.
-                IntPtr ptrToProjectPath = this.PackageSelectionData(new StringBuilder(this.GetMkDocument()), true);
+                var ptrToProjectPath = PackageSelectionData(new StringBuilder(GetMkDocument()), true);
 
-                if(ptrToProjectPath != IntPtr.Zero)
+                if (ptrToProjectPath != IntPtr.Zero)
                 {
-                    dataObject.SetData(DragDropHelper.CreateFormatEtc(DragDropHelper.CF_VSPROJECTCLIPDESCRIPTOR), ptrToProjectPath);
+                    dataObject.SetData(DragDropHelper.CreateFormatEtc(DragDropHelper.CF_VSPROJECTCLIPDESCRIPTOR),
+                        ptrToProjectPath);
                 }
 
                 if (cutHighlightItems)
                 {
-                    bool first = true;
-                    IVsUIHierarchyWindow w = UIHierarchyUtilities.GetUIHierarchyWindow(this.site, HierarchyNode.SolutionExplorer);
+                    var first = true;
+                    var w = UIHierarchyUtilities.GetUIHierarchyWindow(site, SolutionExplorer);
 
                     // This happens in the context of cutting multiple items from the project.
                     // Since we are already in solution explorer, it is extremely unlikely that we get a null return.
                     // If we do, the icons for the cut items will not fade.  The cut operation will still succeed.
                     if (w != null)
                     {
-                        foreach (HierarchyNode node in this.ItemsDraggedOrCutOrCopied)
+                        foreach (var node in ItemsDraggedOrCutOrCopied)
                         {
-                            ErrorHandler.ThrowOnFailure(w.ExpandItem(this.InteropSafeIVsUIHierarchy, node.ID, first ? EXPANDFLAGS.EXPF_CutHighlightItem : EXPANDFLAGS.EXPF_AddCutHighlightItem));
+                            ErrorHandler.ThrowOnFailure(w.ExpandItem(InteropSafeIVsUIHierarchy, node.ID,
+                                first ? EXPANDFLAGS.EXPF_CutHighlightItem : EXPANDFLAGS.EXPF_AddCutHighlightItem));
                             first = false;
                         }
                     }
                 }
             }
-            catch(COMException e)
+            catch (COMException e)
             {
                 Trace.WriteLine("Exception : " + e.Message);
 
@@ -510,59 +557,59 @@ namespace VsTeXProject.VisualStudio.Project
 
 
         /// <summary>
-        /// This is used to recursively add a folder from an other project.
-        /// Note that while we copy the folder content completely, we only
-        /// add to the project items which are part of the source project.
+        ///     This is used to recursively add a folder from an other project.
+        ///     Note that while we copy the folder content completely, we only
+        ///     add to the project items which are part of the source project.
         /// </summary>
         /// <param name="folderToAdd">Project reference (from data object) using the format: {Guid}|project|folderPath</param>
         /// <param name="targetNode">Node to add the new folder to</param>
         protected internal virtual void AddFolderFromOtherProject(string folderToAdd, HierarchyNode targetNode)
         {
-            if(String.IsNullOrEmpty(folderToAdd))
+            if (string.IsNullOrEmpty(folderToAdd))
                 throw new ArgumentNullException("folderToAdd");
-            if(targetNode == null)
+            if (targetNode == null)
                 throw new ArgumentNullException("targetNode");
 
             // Split the reference in its 3 parts
-            int index1 = Guid.Empty.ToString("B").Length;
-            if(index1 + 1 >= folderToAdd.Length)
+            var index1 = Guid.Empty.ToString("B").Length;
+            if (index1 + 1 >= folderToAdd.Length)
                 throw new ArgumentOutOfRangeException("folderToAdd");
 
             // Get the Guid
-            string guidString = folderToAdd.Substring(1, index1 - 2);
-            Guid projectInstanceGuid = new Guid(guidString);
+            var guidString = folderToAdd.Substring(1, index1 - 2);
+            var projectInstanceGuid = new Guid(guidString);
 
             // Get the project path
-            int index2 = folderToAdd.IndexOf('|', index1 + 1);
-            if(index2 < 0 || index2 + 1 >= folderToAdd.Length)
+            var index2 = folderToAdd.IndexOf('|', index1 + 1);
+            if (index2 < 0 || index2 + 1 >= folderToAdd.Length)
                 throw new ArgumentOutOfRangeException("folderToAdd");
 
             // Finally get the source path
-            string folder = folderToAdd.Substring(index2 + 1);
+            var folder = folderToAdd.Substring(index2 + 1);
 
             // Get the target path
-            string folderName = Path.GetFileName(Path.GetDirectoryName(folder));
-            string targetPath = Path.Combine(GetBaseDirectoryForAddingFiles(targetNode), folderName);
+            var folderName = Path.GetFileName(Path.GetDirectoryName(folder));
+            var targetPath = Path.Combine(GetBaseDirectoryForAddingFiles(targetNode), folderName);
 
             // Recursively copy the directory to the new location
             Utilities.RecursivelyCopyDirectory(folder, targetPath);
 
             // Retrieve the project from which the items are being copied
             IVsHierarchy sourceHierarchy;
-            IVsSolution solution = (IVsSolution)GetService(typeof(SVsSolution));
+            var solution = (IVsSolution) GetService(typeof (SVsSolution));
             ErrorHandler.ThrowOnFailure(solution.GetProjectOfGuid(ref projectInstanceGuid, out sourceHierarchy));
 
             // Then retrieve the item ID of the item to copy
-            uint itemID = VSConstants.VSITEMID_ROOT;
+            var itemID = VSConstants.VSITEMID_ROOT;
             ErrorHandler.ThrowOnFailure(sourceHierarchy.ParseCanonicalName(folder, out itemID));
 
             // Ensure we don't end up in an endless recursion
-            if(Utilities.IsSameComObject(this.InteropSafeIVsHierarchy, sourceHierarchy))
+            if (Utilities.IsSameComObject(InteropSafeIVsHierarchy, sourceHierarchy))
             {
-                HierarchyNode cursorNode = targetNode;
-                while(cursorNode != null)
+                var cursorNode = targetNode;
+                while (cursorNode != null)
                 {
-                    if(String.Compare(folder, cursorNode.GetMkDocument(), StringComparison.OrdinalIgnoreCase) == 0)
+                    if (string.Compare(folder, cursorNode.GetMkDocument(), StringComparison.OrdinalIgnoreCase) == 0)
                         throw new Exception();
                     cursorNode = cursorNode.Parent;
                 }
@@ -573,35 +620,38 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Recursive method that walk a hierarchy and add items it find to our project.
-        /// Note that this is meant as an helper to the Copy&Paste/Drag&Drop functionality.
+        ///     Recursive method that walk a hierarchy and add items it find to our project.
+        ///     Note that this is meant as an helper to the Copy&Paste/Drag&Drop functionality.
         /// </summary>
         /// <param name="sourceHierarchy">Hierarchy to walk</param>
         /// <param name="itemId">Item ID where to start walking the hierarchy</param>
         /// <param name="targetNode">Node to start adding to</param>
         /// <param name="addSibblings">Typically false on first call and true after that</param>
-        protected virtual void WalkSourceProjectAndAdd(IVsHierarchy sourceHierarchy, uint itemId, HierarchyNode targetNode, bool addSiblings)
+        protected virtual void WalkSourceProjectAndAdd(IVsHierarchy sourceHierarchy, uint itemId,
+            HierarchyNode targetNode, bool addSiblings)
         {
             if (sourceHierarchy == null)
             {
                 throw new ArgumentNullException("sourceHierarchy");
             }
-            
+
             // Before we start the walk, add the current node
             object variant = null;
-            HierarchyNode newNode = targetNode;
-            if(itemId != VSConstants.VSITEMID_NIL)
+            var newNode = targetNode;
+            if (itemId != VSConstants.VSITEMID_NIL)
             {
                 // Calculate the corresponding path in our project
                 string source;
-                ErrorHandler.ThrowOnFailure(((IVsProject)sourceHierarchy).GetMkDocument(itemId, out source));
-                string name = Path.GetFileName(source.TrimEnd(new char[] { '/', '\\' }));
-                string targetPath = Path.Combine(GetBaseDirectoryForAddingFiles(targetNode), name);
+                ErrorHandler.ThrowOnFailure(((IVsProject) sourceHierarchy).GetMkDocument(itemId, out source));
+                var name = Path.GetFileName(source.TrimEnd('/', '\\'));
+                var targetPath = Path.Combine(GetBaseDirectoryForAddingFiles(targetNode), name);
 
                 // See if this is a linked item (file can be linked, not folders)
-                ErrorHandler.ThrowOnFailure(sourceHierarchy.GetProperty(itemId, (int)__VSHPROPID.VSHPROPID_BrowseObject, out variant), VSConstants.E_NOTIMPL);
-                VSLangProj.FileProperties fileProperties = variant as VSLangProj.FileProperties;
-                if(fileProperties != null && fileProperties.IsLink)
+                ErrorHandler.ThrowOnFailure(
+                    sourceHierarchy.GetProperty(itemId, (int) __VSHPROPID.VSHPROPID_BrowseObject, out variant),
+                    VSConstants.E_NOTIMPL);
+                var fileProperties = variant as FileProperties;
+                if (fileProperties != null && fileProperties.IsLink)
                 {
                     // Since we don't support linked item, we make a copy of the file into our storage where it would have been linked
                     File.Copy(source, targetPath, true);
@@ -612,19 +662,21 @@ namespace VsTeXProject.VisualStudio.Project
 
                 // Start with child nodes (depth first)
                 variant = null;
-                ErrorHandler.ThrowOnFailure(sourceHierarchy.GetProperty(itemId, (int)__VSHPROPID.VSHPROPID_FirstVisibleChild, out variant));
-                uint currentItemID = (uint)(int)variant;
+                ErrorHandler.ThrowOnFailure(sourceHierarchy.GetProperty(itemId,
+                    (int) __VSHPROPID.VSHPROPID_FirstVisibleChild, out variant));
+                var currentItemID = (uint) (int) variant;
                 WalkSourceProjectAndAdd(sourceHierarchy, currentItemID, newNode, true);
 
-                if(addSiblings)
+                if (addSiblings)
                 {
                     // Then look at siblings
                     currentItemID = itemId;
-                    while(currentItemID != VSConstants.VSITEMID_NIL)
+                    while (currentItemID != VSConstants.VSITEMID_NIL)
                     {
                         variant = null;
-                        ErrorHandler.ThrowOnFailure(sourceHierarchy.GetProperty(itemId, (int)__VSHPROPID.VSHPROPID_NextVisibleSibling, out variant));
-                        currentItemID = (uint)(int)variant;
+                        ErrorHandler.ThrowOnFailure(sourceHierarchy.GetProperty(itemId,
+                            (int) __VSHPROPID.VSHPROPID_NextVisibleSibling, out variant));
+                        currentItemID = (uint) (int) variant;
                         WalkSourceProjectAndAdd(sourceHierarchy, currentItemID, targetNode, true);
                     }
                 }
@@ -632,62 +684,66 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Add an existing item (file/folder) to the project if it already exist in our storage.
+        ///     Add an existing item (file/folder) to the project if it already exist in our storage.
         /// </summary>
         /// <param name="parentNode">Node to that this item to</param>
         /// <param name="name">Name of the item being added</param>
         /// <param name="targetPath">Path of the item being added</param>
         /// <returns>Node that was added</returns>
-        protected virtual HierarchyNode AddNodeIfTargetExistInStorage(HierarchyNode parentNode, string name, string targetPath)
+        protected virtual HierarchyNode AddNodeIfTargetExistInStorage(HierarchyNode parentNode, string name,
+            string targetPath)
         {
             if (parentNode == null)
             {
                 return null;
             }
-            
-            HierarchyNode newNode = parentNode;
+
+            var newNode = parentNode;
             // If the file/directory exist, add a node for it
-            if(File.Exists(targetPath))
+            if (File.Exists(targetPath))
             {
-                VSADDRESULT[] result = new VSADDRESULT[1];
-                ErrorHandler.ThrowOnFailure(this.AddItem(parentNode.ID, VSADDITEMOPERATION.VSADDITEMOP_OPENFILE, name, 1, new string[] { targetPath }, IntPtr.Zero, result));
-                if(result[0] != VSADDRESULT.ADDRESULT_Success)
+                var result = new VSADDRESULT[1];
+                ErrorHandler.ThrowOnFailure(AddItem(parentNode.ID, VSADDITEMOPERATION.VSADDITEMOP_OPENFILE, name, 1,
+                    new[] {targetPath}, IntPtr.Zero, result));
+                if (result[0] != VSADDRESULT.ADDRESULT_Success)
                     throw new Exception();
-                newNode = this.FindChild(targetPath);
-                if(newNode == null)
+                newNode = FindChild(targetPath);
+                if (newNode == null)
                     throw new Exception();
             }
-            else if(Directory.Exists(targetPath))
+            else if (Directory.Exists(targetPath))
             {
-                newNode = this.CreateFolderNodes(targetPath);
+                newNode = CreateFolderNodes(targetPath);
             }
             return newNode;
         }
+
         #endregion
 
         #region non-virtual methods
+
         /// <summary>
-        /// Handle the Cut operation to the clipboard
+        ///     Handle the Cut operation to the clipboard
         /// </summary>
         protected internal override int CutToClipboard()
         {
-            int returnValue = (int)OleConstants.OLECMDERR_E_NOTSUPPORTED;
+            var returnValue = (int) OleConstants.OLECMDERR_E_NOTSUPPORTED;
             try
             {
-                this.RegisterClipboardNotifications(true);
+                RegisterClipboardNotifications(true);
 
                 // Create our data object and change the selection to show item(s) being cut
-                IOleDataObject dataObject = this.PackageSelectionDataObject(true);
-                if(dataObject != null)
+                IOleDataObject dataObject = PackageSelectionDataObject(true);
+                if (dataObject != null)
                 {
-                    this.SourceDraggedOrCutOrCopied = true;
+                    SourceDraggedOrCutOrCopied = true;
 
                     // Add our cut item(s) to the clipboard
                     ErrorHandler.ThrowOnFailure(UnsafeNativeMethods.OleSetClipboard(dataObject));
 
                     // Inform VS (UiHierarchyWindow) of the cut
-                    IVsUIHierWinClipboardHelper clipboardHelper = (IVsUIHierWinClipboardHelper)GetService(typeof(SVsUIHierWinClipboardHelper));
-                    if(clipboardHelper == null)
+                    var clipboardHelper = (IVsUIHierWinClipboardHelper) GetService(typeof (SVsUIHierWinClipboardHelper));
+                    if (clipboardHelper == null)
                     {
                         return VSConstants.E_FAIL;
                     }
@@ -695,7 +751,7 @@ namespace VsTeXProject.VisualStudio.Project
                     returnValue = ErrorHandler.ThrowOnFailure(clipboardHelper.Cut(dataObject));
                 }
             }
-            catch(COMException e)
+            catch (COMException e)
             {
                 Trace.WriteLine("Exception : " + e.Message);
                 returnValue = e.ErrorCode;
@@ -705,39 +761,39 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Handle the Copy operation to the clipboard
+        ///     Handle the Copy operation to the clipboard
         /// </summary>
         protected internal override int CopyToClipboard()
         {
-            int returnValue = (int)OleConstants.OLECMDERR_E_NOTSUPPORTED;
+            var returnValue = (int) OleConstants.OLECMDERR_E_NOTSUPPORTED;
             try
             {
-                this.RegisterClipboardNotifications(true);
+                RegisterClipboardNotifications(true);
 
                 // Create our data object and change the selection to show item(s) being copy
-                IOleDataObject dataObject = this.PackageSelectionDataObject(false);
-                if(dataObject != null)
+                IOleDataObject dataObject = PackageSelectionDataObject(false);
+                if (dataObject != null)
                 {
-                    this.SourceDraggedOrCutOrCopied = true;
+                    SourceDraggedOrCutOrCopied = true;
 
                     // Add our copy item(s) to the clipboard
                     ErrorHandler.ThrowOnFailure(UnsafeNativeMethods.OleSetClipboard(dataObject));
 
                     // Inform VS (UiHierarchyWindow) of the copy
-                    IVsUIHierWinClipboardHelper clipboardHelper = (IVsUIHierWinClipboardHelper)GetService(typeof(SVsUIHierWinClipboardHelper));
-                    if(clipboardHelper == null)
+                    var clipboardHelper = (IVsUIHierWinClipboardHelper) GetService(typeof (SVsUIHierWinClipboardHelper));
+                    if (clipboardHelper == null)
                     {
                         return VSConstants.E_FAIL;
                     }
                     returnValue = ErrorHandler.ThrowOnFailure(clipboardHelper.Copy(dataObject));
                 }
             }
-            catch(COMException e)
+            catch (COMException e)
             {
                 Trace.WriteLine("Exception : " + e.Message);
                 returnValue = e.ErrorCode;
             }
-            catch(ArgumentException e)
+            catch (ArgumentException e)
             {
                 Trace.WriteLine("Exception : " + e.Message);
                 returnValue = Marshal.GetHRForException(e);
@@ -747,20 +803,20 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Handle the Paste operation to a targetNode
+        ///     Handle the Paste operation to a targetNode
         /// </summary>
         protected internal override int PasteFromClipboard(HierarchyNode targetNode)
         {
-            int returnValue = (int)OleConstants.OLECMDERR_E_NOTSUPPORTED;
-            
+            var returnValue = (int) OleConstants.OLECMDERR_E_NOTSUPPORTED;
+
             if (targetNode == null)
             {
                 return VSConstants.E_INVALIDARG;
             }
-            
+
             //Get the clipboardhelper service and use it after processing dataobject
-            IVsUIHierWinClipboardHelper clipboardHelper = (IVsUIHierWinClipboardHelper)GetService(typeof(SVsUIHierWinClipboardHelper));
-            if(clipboardHelper == null)
+            var clipboardHelper = (IVsUIHierWinClipboardHelper) GetService(typeof (SVsUIHierWinClipboardHelper));
+            if (clipboardHelper == null)
             {
                 return VSConstants.E_FAIL;
             }
@@ -770,25 +826,25 @@ namespace VsTeXProject.VisualStudio.Project
                 //Get dataobject from clipboard
                 IOleDataObject dataObject = null;
                 ErrorHandler.ThrowOnFailure(UnsafeNativeMethods.OleGetClipboard(out dataObject));
-                if(dataObject == null)
+                if (dataObject == null)
                 {
                     return VSConstants.E_UNEXPECTED;
                 }
 
-                DropEffect dropEffect = DropEffect.None;
-                DropDataType dropDataType = DropDataType.None;
+                var dropEffect = DropEffect.None;
+                var dropDataType = DropDataType.None;
                 try
                 {
-                    dropDataType = this.ProcessSelectionDataObject(dataObject, targetNode.GetDragTargetHandlerNode());
-                    dropEffect = this.QueryDropEffect(dropDataType, 0);
+                    dropDataType = ProcessSelectionDataObject(dataObject, targetNode.GetDragTargetHandlerNode());
+                    dropEffect = QueryDropEffect(dropDataType, 0);
                 }
-                catch(ExternalException e)
+                catch (ExternalException e)
                 {
                     Trace.WriteLine("Exception : " + e.Message);
 
                     // If it is a drop from windows and we get any kind of error ignore it. This
                     // prevents bogus messages from the shell from being displayed
-                    if(dropDataType != DropDataType.Shell)
+                    if (dropDataType != DropDataType.Shell)
                     {
                         throw;
                     }
@@ -796,10 +852,10 @@ namespace VsTeXProject.VisualStudio.Project
                 finally
                 {
                     // Inform VS (UiHierarchyWindow) of the paste
-                    returnValue = clipboardHelper.Paste(dataObject, (uint)dropEffect);
+                    returnValue = clipboardHelper.Paste(dataObject, (uint) dropEffect);
                 }
             }
-            catch(COMException e)
+            catch (COMException e)
             {
                 Trace.WriteLine("Exception : " + e.Message);
 
@@ -810,7 +866,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Determines if the paste command should be allowed.
+        ///     Determines if the paste command should be allowed.
         /// </summary>
         /// <returns></returns>
         protected internal override bool AllowPasteCommand()
@@ -819,25 +875,25 @@ namespace VsTeXProject.VisualStudio.Project
             try
             {
                 ErrorHandler.ThrowOnFailure(UnsafeNativeMethods.OleGetClipboard(out dataObject));
-                if(dataObject == null)
+                if (dataObject == null)
                 {
                     return false;
                 }
 
                 // First see if this is a set of storage based items
-                FORMATETC format = DragDropHelper.CreateFormatEtc((ushort)DragDropHelper.CF_VSSTGPROJECTITEMS);
-                if(dataObject.QueryGetData(new FORMATETC[] { format }) == VSConstants.S_OK)
+                var format = DragDropHelper.CreateFormatEtc(DragDropHelper.CF_VSSTGPROJECTITEMS);
+                if (dataObject.QueryGetData(new[] {format}) == VSConstants.S_OK)
                     return true;
                 // Try reference based items
-                format = DragDropHelper.CreateFormatEtc((ushort)DragDropHelper.CF_VSREFPROJECTITEMS);
-                if(dataObject.QueryGetData(new FORMATETC[] { format }) == VSConstants.S_OK)
+                format = DragDropHelper.CreateFormatEtc(DragDropHelper.CF_VSREFPROJECTITEMS);
+                if (dataObject.QueryGetData(new[] {format}) == VSConstants.S_OK)
                     return true;
                 // Try windows explorer files format
-                format = DragDropHelper.CreateFormatEtc((ushort)NativeMethods.CF_HDROP);
-                return (dataObject.QueryGetData(new FORMATETC[] { format }) == VSConstants.S_OK);
+                format = DragDropHelper.CreateFormatEtc(NativeMethods.CF_HDROP);
+                return dataObject.QueryGetData(new[] {format}) == VSConstants.S_OK;
             }
-            // We catch External exceptions since it might be that it is not our data on the clipboard.
-            catch(ExternalException e)
+                // We catch External exceptions since it might be that it is not our data on the clipboard.
+            catch (ExternalException e)
             {
                 Trace.WriteLine("Exception :" + e.Message);
                 return false;
@@ -845,67 +901,73 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Register/Unregister for Clipboard events for the UiHierarchyWindow (solution explorer)
+        ///     Register/Unregister for Clipboard events for the UiHierarchyWindow (solution explorer)
         /// </summary>
         /// <param name="register">true for register, false for unregister</param>
         protected internal override void RegisterClipboardNotifications(bool register)
         {
             // Get the UiHierarchy window clipboard helper service
-            IVsUIHierWinClipboardHelper clipboardHelper = (IVsUIHierWinClipboardHelper)GetService(typeof(SVsUIHierWinClipboardHelper));
-            if(clipboardHelper == null)
+            var clipboardHelper = (IVsUIHierWinClipboardHelper) GetService(typeof (SVsUIHierWinClipboardHelper));
+            if (clipboardHelper == null)
             {
                 return;
             }
 
-            if(register && this.copyPasteCookie == 0)
+            if (register && copyPasteCookie == 0)
             {
                 // Register
-                ErrorHandler.ThrowOnFailure(clipboardHelper.AdviseClipboardHelperEvents(this.InteropSafeIVsUIHierWinClipboardHelperEvents, out this.copyPasteCookie));
-                Debug.Assert(this.copyPasteCookie != 0, "AdviseClipboardHelperEvents returned an invalid cookie");
+                ErrorHandler.ThrowOnFailure(
+                    clipboardHelper.AdviseClipboardHelperEvents(InteropSafeIVsUIHierWinClipboardHelperEvents,
+                        out copyPasteCookie));
+                Debug.Assert(copyPasteCookie != 0, "AdviseClipboardHelperEvents returned an invalid cookie");
             }
-            else if(!register && this.copyPasteCookie != 0)
+            else if (!register && copyPasteCookie != 0)
             {
                 // Unregister
-                ErrorHandler.ThrowOnFailure(clipboardHelper.UnadviseClipboardHelperEvents(this.copyPasteCookie));
-                this.copyPasteCookie = 0;
+                ErrorHandler.ThrowOnFailure(clipboardHelper.UnadviseClipboardHelperEvents(copyPasteCookie));
+                copyPasteCookie = 0;
             }
         }
 
         /// <summary>
-        /// Process dataobject from Drag/Drop/Cut/Copy/Paste operation
+        ///     Process dataobject from Drag/Drop/Cut/Copy/Paste operation
         /// </summary>
         /// <remarks>The targetNode is set if the method is called from a drop operation, otherwise it is null</remarks>
         internal DropDataType ProcessSelectionDataObject(IOleDataObject dataObject, HierarchyNode targetNode)
         {
-            DropDataType dropDataType = DropDataType.None;
-            bool isWindowsFormat = false;
+            var dropDataType = DropDataType.None;
+            var isWindowsFormat = false;
 
             // Try to get it as a directory based project.
-            List<string> filesDropped = DragDropHelper.GetDroppedFiles(DragDropHelper.CF_VSSTGPROJECTITEMS, dataObject, out dropDataType);
-            if(filesDropped.Count == 0)
+            var filesDropped = DragDropHelper.GetDroppedFiles(DragDropHelper.CF_VSSTGPROJECTITEMS, dataObject,
+                out dropDataType);
+            if (filesDropped.Count == 0)
             {
-                filesDropped = DragDropHelper.GetDroppedFiles(DragDropHelper.CF_VSREFPROJECTITEMS, dataObject, out dropDataType);
+                filesDropped = DragDropHelper.GetDroppedFiles(DragDropHelper.CF_VSREFPROJECTITEMS, dataObject,
+                    out dropDataType);
             }
-            if(filesDropped.Count == 0)
+            if (filesDropped.Count == 0)
             {
                 filesDropped = DragDropHelper.GetDroppedFiles(NativeMethods.CF_HDROP, dataObject, out dropDataType);
-                isWindowsFormat = (filesDropped.Count > 0);
+                isWindowsFormat = filesDropped.Count > 0;
             }
 
-            if(dropDataType != DropDataType.None && filesDropped.Count > 0)
+            if (dropDataType != DropDataType.None && filesDropped.Count > 0)
             {
-                string[] filesDroppedAsArray = filesDropped.ToArray();
+                var filesDroppedAsArray = filesDropped.ToArray();
 
-                HierarchyNode node = (targetNode == null) ? this : targetNode;
+                var node = targetNode == null ? this : targetNode;
 
                 // For directory based projects the content of the clipboard is a double-NULL terminated list of Projref strings.
-                if(isWindowsFormat)
+                if (isWindowsFormat)
                 {
                     // This is the code path when source is windows explorer
-                    VSADDRESULT[] vsaddresults = new VSADDRESULT[1];
+                    var vsaddresults = new VSADDRESULT[1];
                     vsaddresults[0] = VSADDRESULT.ADDRESULT_Failure;
-                    int addResult = AddItem(node.ID, VSADDITEMOPERATION.VSADDITEMOP_OPENFILE, null, (uint)filesDropped.Count, filesDroppedAsArray, IntPtr.Zero, vsaddresults);
-                    if(addResult != VSConstants.S_OK && addResult != VSConstants.S_FALSE && addResult != (int)OleConstants.OLECMDERR_E_CANCELED
+                    var addResult = AddItem(node.ID, VSADDITEMOPERATION.VSADDITEMOP_OPENFILE, null,
+                        (uint) filesDropped.Count, filesDroppedAsArray, IntPtr.Zero, vsaddresults);
+                    if (addResult != VSConstants.S_OK && addResult != VSConstants.S_FALSE &&
+                        addResult != (int) OleConstants.OLECMDERR_E_CANCELED
                         && vsaddresults[0] != VSADDRESULT.ADDRESULT_Success)
                     {
                         ErrorHandler.ThrowOnFailure(addResult);
@@ -913,12 +975,9 @@ namespace VsTeXProject.VisualStudio.Project
 
                     return dropDataType;
                 }
-                else
+                if (AddFilesFromProjectReferences(node, filesDroppedAsArray))
                 {
-                    if(AddFilesFromProjectReferences(node, filesDroppedAsArray))
-                    {
-                        return dropDataType;
-                    }
+                    return dropDataType;
                 }
             }
 
@@ -928,35 +987,35 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Get the dropdatatype from the dataobject
+        ///     Get the dropdatatype from the dataobject
         /// </summary>
         /// <param name="pDataObject">The dataobject to be analysed for its format</param>
         /// <returns>dropdatatype or none if dataobject does not contain known format</returns>
         internal static DropDataType QueryDropDataType(IOleDataObject pDataObject)
         {
-            if(pDataObject == null)
+            if (pDataObject == null)
             {
                 return DropDataType.None;
             }
 
             // known formats include File Drops (as from WindowsExplorer),
             // VSProject Reference Items and VSProject Storage Items.
-            FORMATETC fmt = DragDropHelper.CreateFormatEtc(NativeMethods.CF_HDROP);
+            var fmt = DragDropHelper.CreateFormatEtc(NativeMethods.CF_HDROP);
 
-            if(DragDropHelper.QueryGetData(pDataObject, ref fmt) == VSConstants.S_OK)
+            if (DragDropHelper.QueryGetData(pDataObject, ref fmt) == VSConstants.S_OK)
             {
                 return DropDataType.Shell;
             }
 
             fmt.cfFormat = DragDropHelper.CF_VSREFPROJECTITEMS;
-            if(DragDropHelper.QueryGetData(pDataObject, ref fmt) == VSConstants.S_OK)
+            if (DragDropHelper.QueryGetData(pDataObject, ref fmt) == VSConstants.S_OK)
             {
                 // Data is from a Ref-based project.
                 return DropDataType.VsRef;
             }
 
             fmt.cfFormat = DragDropHelper.CF_VSSTGPROJECTITEMS;
-            if(DragDropHelper.QueryGetData(pDataObject, ref fmt) == VSConstants.S_OK)
+            if (DragDropHelper.QueryGetData(pDataObject, ref fmt) == VSConstants.S_OK)
             {
                 return DropDataType.VsStg;
             }
@@ -965,90 +1024,89 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Returns the drop effect.
+        ///     Returns the drop effect.
         /// </summary>
         /// <remarks>
-        /// // A directory based project should perform as follow:
-        ///		NO MODIFIER 
-        ///			- COPY if not from current hierarchy, 
-        ///			- MOVE if from current hierarchy
-        ///		SHIFT DRAG - MOVE
-        ///		CTRL DRAG - COPY
-        ///		CTRL-SHIFT DRAG - NO DROP (used for reference based projects only)
+        ///     // A directory based project should perform as follow:
+        ///     NO MODIFIER
+        ///     - COPY if not from current hierarchy,
+        ///     - MOVE if from current hierarchy
+        ///     SHIFT DRAG - MOVE
+        ///     CTRL DRAG - COPY
+        ///     CTRL-SHIFT DRAG - NO DROP (used for reference based projects only)
         /// </remarks>
         internal DropEffect QueryDropEffect(DropDataType dropDataType, uint grfKeyState)
         {
             //Validate the dropdatatype
-            if((dropDataType != DropDataType.Shell) && (dropDataType != DropDataType.VsRef) && (dropDataType != DropDataType.VsStg))
+            if ((dropDataType != DropDataType.Shell) && (dropDataType != DropDataType.VsRef) &&
+                (dropDataType != DropDataType.VsStg))
             {
                 return DropEffect.None;
             }
 
             // CTRL-SHIFT
-            if((grfKeyState & NativeMethods.MK_CONTROL) != 0 && (grfKeyState & NativeMethods.MK_SHIFT) != 0)
+            if ((grfKeyState & NativeMethods.MK_CONTROL) != 0 && (grfKeyState & NativeMethods.MK_SHIFT) != 0)
             {
                 // Because we are not referenced base, we don't support link
                 return DropEffect.None;
             }
 
             // CTRL
-            if((grfKeyState & NativeMethods.MK_CONTROL) != 0)
+            if ((grfKeyState & NativeMethods.MK_CONTROL) != 0)
                 return DropEffect.Copy;
 
             // SHIFT
-            if((grfKeyState & NativeMethods.MK_SHIFT) != 0)
+            if ((grfKeyState & NativeMethods.MK_SHIFT) != 0)
                 return DropEffect.Move;
 
             // no modifier
-            if(this.SourceDraggedOrCutOrCopied)
+            if (SourceDraggedOrCutOrCopied)
             {
                 return DropEffect.Move;
             }
-            else
-            {
-                return DropEffect.Copy;
-            }
+            return DropEffect.Copy;
         }
 
         internal void CleanupSelectionDataObject(bool dropped, bool cut, bool moved)
         {
-            this.CleanupSelectionDataObject(dropped, cut, moved, false);
+            CleanupSelectionDataObject(dropped, cut, moved, false);
         }
 
         /// <summary>
-        ///  After a drop or paste, will use the dwEffects 
-        ///  to determine whether we need to clean up the source nodes or not. If
-        ///  justCleanup is set, it only does the cleanup work.
+        ///     After a drop or paste, will use the dwEffects
+        ///     to determine whether we need to clean up the source nodes or not. If
+        ///     justCleanup is set, it only does the cleanup work.
         /// </summary>
         internal void CleanupSelectionDataObject(bool dropped, bool cut, bool moved, bool justCleanup)
         {
-            if(this.ItemsDraggedOrCutOrCopied == null || this.ItemsDraggedOrCutOrCopied.Count == 0)
+            if (ItemsDraggedOrCutOrCopied == null || ItemsDraggedOrCutOrCopied.Count == 0)
             {
                 return;
             }
 
             try
             {
-                IVsUIHierarchyWindow w = UIHierarchyUtilities.GetUIHierarchyWindow(this.site, HierarchyNode.SolutionExplorer);
-                foreach(HierarchyNode node in this.ItemsDraggedOrCutOrCopied)
+                var w = UIHierarchyUtilities.GetUIHierarchyWindow(site, SolutionExplorer);
+                foreach (var node in ItemsDraggedOrCutOrCopied)
                 {
-                    if((moved && (cut || dropped) && !justCleanup))
+                    if (moved && (cut || dropped) && !justCleanup)
                     {
                         // do not close it if the doc is dirty or we do not own it
                         bool isDirty, isOpen, isOpenedByUs;
                         uint docCookie;
                         IVsPersistDocData ppIVsPersistDocData;
-                        DocumentManager manager = node.GetDocumentManager();
-                        if(manager != null)
+                        var manager = node.GetDocumentManager();
+                        if (manager != null)
                         {
-                            manager.GetDocInfo(out isOpen, out isDirty, out isOpenedByUs, out docCookie, out ppIVsPersistDocData);
-                            if(isDirty || (isOpen && !isOpenedByUs))
+                            manager.GetDocInfo(out isOpen, out isDirty, out isOpenedByUs, out docCookie,
+                                out ppIVsPersistDocData);
+                            if (isDirty || (isOpen && !isOpenedByUs))
                             {
                                 continue;
                             }
 
                             // close it if opened
-                            if(isOpen)
+                            if (isOpen)
                             {
                                 manager.Close(__FRAMECLOSE.FRAMECLOSE_NoSave);
                             }
@@ -1056,9 +1114,10 @@ namespace VsTeXProject.VisualStudio.Project
 
                         node.Remove(true);
                     }
-                    else if(w != null)
+                    else if (w != null)
                     {
-                        ErrorHandler.ThrowOnFailure(w.ExpandItem(this.InteropSafeIVsUIHierarchy, node.ID, EXPANDFLAGS.EXPF_UnCutHighlightItem));
+                        ErrorHandler.ThrowOnFailure(w.ExpandItem(InteropSafeIVsUIHierarchy, node.ID,
+                            EXPANDFLAGS.EXPF_UnCutHighlightItem));
                     }
                 }
             }
@@ -1069,21 +1128,21 @@ namespace VsTeXProject.VisualStudio.Project
                     // Now delete the memory allocated by the packaging of datasources.
                     // If we just did a cut, or we are told to cleanup, then we need to free the data object. Otherwise, we leave it
                     // alone so that you can continue to paste the data in new locations.
-                    if(moved || cut || justCleanup)
+                    if (moved || cut || justCleanup)
                     {
-                        this.ItemsDraggedOrCutOrCopied.Clear();
-                        this.CleanAndFlushClipboard();
+                        ItemsDraggedOrCutOrCopied.Clear();
+                        CleanAndFlushClipboard();
                     }
                 }
                 finally
                 {
-                    this.dropDataType = DropDataType.None;
+                    dropDataType = DropDataType.None;
                 }
             }
         }
 
         /// <summary>
-        /// Moves files from one part of our project to another.
+        ///     Moves files from one part of our project to another.
         /// </summary>
         /// <param name="targetNode">the targetHandler node</param>
         /// <param name="projectReferences">List of projectref string</param>
@@ -1091,28 +1150,30 @@ namespace VsTeXProject.VisualStudio.Project
         internal bool AddFilesFromProjectReferences(HierarchyNode targetNode, string[] projectReferences)
         {
             //Validate input
-            if(projectReferences == null)
+            if (projectReferences == null)
             {
-                throw new ArgumentException(SR.GetString(SR.InvalidParameter, CultureInfo.CurrentUICulture), "projectReferences");
+                throw new ArgumentException(SR.GetString(SR.InvalidParameter, CultureInfo.CurrentUICulture),
+                    "projectReferences");
             }
-            if(targetNode == null)
+            if (targetNode == null)
             {
                 throw new InvalidOperationException();
             }
 
             //Iteratively add files from projectref
-            foreach(string projectReference in projectReferences)
+            foreach (var projectReference in projectReferences)
             {
-                if(projectReference == null)
+                if (projectReference == null)
                 {
                     // bad projectref, bail out
                     return false;
                 }
-                if(projectReference.EndsWith("/", StringComparison.Ordinal) || projectReference.EndsWith("\\", StringComparison.Ordinal))
+                if (projectReference.EndsWith("/", StringComparison.Ordinal) ||
+                    projectReference.EndsWith("\\", StringComparison.Ordinal))
                 {
                     AddFolderFromOtherProject(projectReference, targetNode);
                 }
-                else if(!AddFileToNodeFromProjectReference(projectReference, targetNode))
+                else if (!AddFileToNodeFromProjectReference(projectReference, targetNode))
                 {
                     return false;
                 }
@@ -1124,25 +1185,26 @@ namespace VsTeXProject.VisualStudio.Project
         #endregion
 
         #region private helper methods
+
         /// <summary>
-        /// Empties all the data structures added to the clipboard and flushes the clipboard.
+        ///     Empties all the data structures added to the clipboard and flushes the clipboard.
         /// </summary>
         private void CleanAndFlushClipboard()
         {
             IOleDataObject oleDataObject = null;
             ErrorHandler.ThrowOnFailure(UnsafeNativeMethods.OleGetClipboard(out oleDataObject));
-            if(oleDataObject == null)
+            if (oleDataObject == null)
             {
                 return;
             }
 
 
-            string sourceProjectPath = DragDropHelper.GetSourceProjectPath(oleDataObject);
+            var sourceProjectPath = DragDropHelper.GetSourceProjectPath(oleDataObject);
 
-            if(!String.IsNullOrEmpty(sourceProjectPath) && NativeMethods.IsSamePath(sourceProjectPath, this.GetMkDocument()))
+            if (!string.IsNullOrEmpty(sourceProjectPath) && NativeMethods.IsSamePath(sourceProjectPath, GetMkDocument()))
             {
                 ErrorHandler.ThrowOnFailure(UnsafeNativeMethods.OleFlushClipboard());
-                int clipboardOpened = 0;
+                var clipboardOpened = 0;
                 try
                 {
                     ErrorHandler.ThrowOnFailure(clipboardOpened = UnsafeNativeMethods.OpenClipboard(IntPtr.Zero));
@@ -1150,7 +1212,7 @@ namespace VsTeXProject.VisualStudio.Project
                 }
                 finally
                 {
-                    if(clipboardOpened == 1)
+                    if (clipboardOpened == 1)
                     {
                         ErrorHandler.ThrowOnFailure(UnsafeNativeMethods.CloseClipboard());
                     }
@@ -1160,15 +1222,15 @@ namespace VsTeXProject.VisualStudio.Project
 
         private IntPtr PackageSelectionData(StringBuilder sb, bool addEndFormatDelimiter)
         {
-            if(sb == null || sb.ToString().Length == 0 || this.ItemsDraggedOrCutOrCopied.Count == 0)
+            if (sb == null || sb.ToString().Length == 0 || ItemsDraggedOrCutOrCopied.Count == 0)
             {
                 return IntPtr.Zero;
             }
 
             // Double null at end.
-            if(addEndFormatDelimiter)
+            if (addEndFormatDelimiter)
             {
-                if(sb.ToString()[sb.Length - 1] != '\0')
+                if (sb.ToString()[sb.Length - 1] != '\0')
                 {
                     sb.Append('\0');
                 }
@@ -1177,25 +1239,25 @@ namespace VsTeXProject.VisualStudio.Project
             // We request unmanaged permission to execute the below.
             new SecurityPermission(SecurityPermissionFlag.UnmanagedCode).Demand();
 
-            _DROPFILES df = new _DROPFILES();
-            int dwSize = Marshal.SizeOf(df);
-            Int16 wideChar = 0;
-            int dwChar = Marshal.SizeOf(wideChar);
-            int structSize = dwSize + ((sb.Length + 1) * dwChar);
-            IntPtr ptr = Marshal.AllocHGlobal(structSize);
+            var df = new _DROPFILES();
+            var dwSize = Marshal.SizeOf(df);
+            short wideChar = 0;
+            var dwChar = Marshal.SizeOf(wideChar);
+            var structSize = dwSize + (sb.Length + 1)*dwChar;
+            var ptr = Marshal.AllocHGlobal(structSize);
             df.pFiles = dwSize;
             df.fWide = 1;
-            IntPtr data = IntPtr.Zero;
+            var data = IntPtr.Zero;
             try
             {
                 data = UnsafeNativeMethods.GlobalLock(ptr);
                 Marshal.StructureToPtr(df, data, false);
-                IntPtr strData = new IntPtr((long)data + dwSize);
+                var strData = new IntPtr((long) data + dwSize);
                 DragDropHelper.CopyStringToHGlobal(sb.ToString(), strData, structSize);
             }
             finally
             {
-                if(data != IntPtr.Zero)
+                if (data != IntPtr.Zero)
                     UnsafeNativeMethods.GlobalUnLock(data);
             }
 

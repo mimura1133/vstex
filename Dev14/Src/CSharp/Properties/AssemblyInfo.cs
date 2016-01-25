@@ -1,4 +1,4 @@
-/********************************************************************************************
+﻿/********************************************************************************************
 
 Copyright (c) Microsoft Corporation 
 All rights reserved. 
@@ -45,12 +45,11 @@ local laws, the contributors exclude the implied warranties of merchantability, 
 a particular purpose and non-infringement.
 
 ********************************************************************************************/
+
 using System;
-using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Security.Permissions;
 using System.Resources;
+using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("VsTeXProject.VisualStudio.Project")]
 [assembly: AssemblyDescription("MPF Implementation of VS Projects for TeX Extensions.")]
@@ -60,13 +59,9 @@ using System.Resources;
 [assembly: AssemblyCopyright("Copyright © Mimura 2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-
 [assembly: ComVisible(false)]
 [assembly: CLSCompliant(false)]
-
 [assembly: Guid("084954ec-af04-4ea3-b166-b1fced604dc8")]
-
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-
-[assembly: NeutralResourcesLanguageAttribute("en")]
+[assembly: NeutralResourcesLanguage("en")]

@@ -38,6 +38,8 @@ namespace VsTeXProject
         internal const string NestedProjectFileAssemblyFilter = "NestedProjectFileAssemblyFilter";
         internal const string TeXProcessor = "TeXProcessor";
         internal const string TeXProcessorDescription = "TeXProcessorDescription";
+        internal const string ToolsPath = "ToolsPath";
+        internal const string ToolsPathDescription = "ToolsPathDescription";
         //internal const string MsgFailedToLoadTemplateFile = "Failed to add template file to project";
         #endregion Constants
 

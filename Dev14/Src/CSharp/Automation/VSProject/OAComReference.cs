@@ -50,6 +50,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using VSLangProj;
 
 namespace VsTeXProject.VisualStudio.Project.Automation
 {
@@ -63,61 +64,67 @@ namespace VsTeXProject.VisualStudio.Project.Automation
         }
 
         #region Reference override
+
         public override string Culture
         {
             get
             {
-                int locale = 0;
+                var locale = 0;
                 try
                 {
                     locale = int.Parse(BaseReferenceNode.LCID, CultureInfo.InvariantCulture);
                 }
-                catch(System.FormatException)
+                catch (FormatException)
                 {
                     // Do Nothing
                 }
-                if(0 == locale)
+                if (0 == locale)
                 {
                     return string.Empty;
                 }
-                CultureInfo culture = new CultureInfo(locale);
+                var culture = new CultureInfo(locale);
                 return culture.Name;
             }
         }
+
         public override string Identity
         {
             get
             {
-                return string.Format(CultureInfo.InvariantCulture, "{0}\\{1}", BaseReferenceNode.TypeGuid.ToString("B"), this.Version);
+                return string.Format(CultureInfo.InvariantCulture, "{0}\\{1}", BaseReferenceNode.TypeGuid.ToString("B"),
+                    Version);
             }
         }
+
         public override int MajorVersion
         {
             get { return BaseReferenceNode.MajorVersionNumber; }
         }
+
         public override int MinorVersion
         {
             get { return BaseReferenceNode.MinorVersionNumber; }
         }
+
         public override string Name
         {
             get { return BaseReferenceNode.Caption; }
         }
-        public override VSLangProj.prjReferenceType Type
+
+        public override prjReferenceType Type
         {
-            get
-            {
-                return VSLangProj.prjReferenceType.prjReferenceTypeActiveX;
-            }
+            get { return prjReferenceType.prjReferenceTypeActiveX; }
         }
+
         public override string Version
         {
             get
             {
-                Version version = new Version(BaseReferenceNode.MajorVersionNumber, BaseReferenceNode.MinorVersionNumber);
+                var version = new Version(BaseReferenceNode.MajorVersionNumber, BaseReferenceNode.MinorVersionNumber);
                 return version.ToString();
             }
         }
+
         #endregion
     }
 }

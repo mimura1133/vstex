@@ -55,7 +55,7 @@ using Microsoft.VisualStudio.OLE.Interop;
 namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
-    /// Class used to identify a source of events of type SinkType.
+    ///     Class used to identify a source of events of type SinkType.
     /// </summary>
     [ComVisible(false)]
     internal interface IEventSource<SinkType>
@@ -68,51 +68,58 @@ namespace VsTeXProject.VisualStudio.Project
     [ComVisible(true)]
     public class ConnectionPointContainer : IConnectionPointContainer
     {
-        private Dictionary<Guid, IConnectionPoint> connectionPoints;
+        private readonly Dictionary<Guid, IConnectionPoint> connectionPoints;
+
         internal ConnectionPointContainer()
         {
             connectionPoints = new Dictionary<Guid, IConnectionPoint>();
         }
+
         internal void AddEventSource<SinkType>(IEventSource<SinkType> source)
             where SinkType : class
         {
-            if(null == source)
+            if (null == source)
             {
                 throw new ArgumentNullException("source");
             }
-            if(connectionPoints.ContainsKey(typeof(SinkType).GUID))
+            if (connectionPoints.ContainsKey(typeof (SinkType).GUID))
             {
                 throw new ArgumentException("EventSource guid already added to the list of connection points", "source");
             }
-            connectionPoints.Add(typeof(SinkType).GUID, new ConnectionPoint<SinkType>(this, source));
+            connectionPoints.Add(typeof (SinkType).GUID, new ConnectionPoint<SinkType>(this, source));
         }
 
         #region IConnectionPointContainer Members
+
         void IConnectionPointContainer.EnumConnectionPoints(out IEnumConnectionPoints ppEnum)
         {
-            throw new NotImplementedException(); ;
+            throw new NotImplementedException();
+            ;
         }
+
         void IConnectionPointContainer.FindConnectionPoint(ref Guid riid, out IConnectionPoint ppCP)
         {
             ppCP = connectionPoints[riid];
         }
+
         #endregion
     }
 
     internal class ConnectionPoint<SinkType> : IConnectionPoint
         where SinkType : class
     {
-        Dictionary<uint, SinkType> sinks;
+        private readonly ConnectionPointContainer container;
         private uint nextCookie;
-        private ConnectionPointContainer container;
-        private IEventSource<SinkType> source;
+        private readonly Dictionary<uint, SinkType> sinks;
+        private readonly IEventSource<SinkType> source;
+
         internal ConnectionPoint(ConnectionPointContainer container, IEventSource<SinkType> source)
         {
-            if(null == container)
+            if (null == container)
             {
                 throw new ArgumentNullException("container");
             }
-            if(null == source)
+            if (null == source)
             {
                 throw new ArgumentNullException("source");
             }
@@ -121,11 +128,13 @@ namespace VsTeXProject.VisualStudio.Project
             sinks = new Dictionary<uint, SinkType>();
             nextCookie = 1;
         }
+
         #region IConnectionPoint Members
+
         public void Advise(object pUnkSink, out uint pdwCookie)
         {
-            SinkType sink = pUnkSink as SinkType;
-            if(null == sink)
+            var sink = pUnkSink as SinkType;
+            if (null == sink)
             {
                 Marshal.ThrowExceptionForHR(VSConstants.E_NOINTERFACE);
             }
@@ -137,26 +146,28 @@ namespace VsTeXProject.VisualStudio.Project
 
         public void EnumConnections(out IEnumConnections ppEnum)
         {
-            throw new NotImplementedException(); ;
+            throw new NotImplementedException();
+            ;
         }
 
         public void GetConnectionInterface(out Guid pIID)
         {
-            pIID = typeof(SinkType).GUID;
+            pIID = typeof (SinkType).GUID;
         }
 
         public void GetConnectionPointContainer(out IConnectionPointContainer ppCPC)
         {
-            ppCPC = this.container;
+            ppCPC = container;
         }
 
         public void Unadvise(uint dwCookie)
         {
             // This will throw if the cookie is not in the list.
-            SinkType sink = sinks[dwCookie];
+            var sink = sinks[dwCookie];
             sinks.Remove(dwCookie);
             source.OnSinkRemoved(sink);
         }
+
         #endregion
     }
 }

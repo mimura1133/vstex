@@ -58,44 +58,53 @@ using VsCommands2K = Microsoft.VisualStudio.VSConstants.VSStd2KCmdID;
 namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
-    /// Defines the logic for all dependent file nodes (solution explorer icon, commands etc.)
+    ///     Defines the logic for all dependent file nodes (solution explorer icon, commands etc.)
     /// </summary>
     [CLSCompliant(false)]
     [ComVisible(true)]
     public class DependentFileNode : FileNode
     {
-        #region fields
-        /// <summary>
-        /// Defines if the node has a name relation to its parent node
-        /// e.g. Form1.ext and Form1.resx are name related (until first occurence of extention separator)
-        /// </summary>
-        #endregion
-
-        #region Properties
-        public override int ImageIndex
-        {
-            get { return (this.CanShowDefaultIcon() ? (int)ProjectNode.ImageName.DependentFile : (int)ProjectNode.ImageName.MissingFile); }
-        }
-        #endregion
-
         #region ctor
+
         /// <summary>
-        /// Constructor for the DependentFileNode
+        ///     Constructor for the DependentFileNode
         /// </summary>
         /// <param name="root">Root of the hierarchy</param>
         /// <param name="e">Associated project element</param>
         public DependentFileNode(ProjectNode root, ProjectElement element)
             : base(root, element)
         {
-            this.HasParentNodeNameRelation = false;
+            HasParentNodeNameRelation = false;
         }
 
+        #endregion
+
+        #region fields
+
+        /// <summary>
+        ///     Defines if the node has a name relation to its parent node
+        ///     e.g. Form1.ext and Form1.resx are name related (until first occurence of extention separator)
+        /// </summary>
+
+        #endregion
+
+        #region Properties
+        public override int ImageIndex
+        {
+            get
+            {
+                return CanShowDefaultIcon()
+                    ? (int) ProjectNode.ImageName.DependentFile
+                    : (int) ProjectNode.ImageName.MissingFile;
+            }
+        }
 
         #endregion
 
         #region overridden methods
+
         /// <summary>
-        /// Disable rename
+        ///     Disable rename
         /// </summary>
         /// <param name="label">new label</param>
         /// <returns>E_NOTIMPLE in order to tell the call that we do not support rename</returns>
@@ -105,23 +114,23 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Gets a handle to the icon that should be set for this node
+        ///     Gets a handle to the icon that should be set for this node
         /// </summary>
         /// <param name="open">Whether the folder is open, ignored here.</param>
         /// <returns>Handle to icon for the node</returns>
         public override object GetIconHandle(bool open)
         {
-            return this.ProjectMgr.ImageHandler.GetIconHandle(this.ImageIndex);
+            return ProjectMgr.ImageHandler.GetIconHandle(ImageIndex);
         }
 
         /// <summary>
-        /// Disable certain commands for dependent file nodes 
+        ///     Disable certain commands for dependent file nodes
         /// </summary>
         protected override int QueryStatusOnNode(Guid cmdGroup, uint cmd, IntPtr pCmdText, ref QueryStatusResult result)
         {
-            if(cmdGroup == VsMenus.guidStandardCommandSet97)
+            if (cmdGroup == VsMenus.guidStandardCommandSet97)
             {
-                switch((VsCommands)cmd)
+                switch ((VsCommands) cmd)
                 {
                     case VsCommands.Copy:
                     case VsCommands.Paste:
@@ -137,9 +146,9 @@ namespace VsTeXProject.VisualStudio.Project
                         return VSConstants.S_OK;
                 }
             }
-            else if(cmdGroup == VsMenus.guidStandardCommandSet2K)
+            else if (cmdGroup == VsMenus.guidStandardCommandSet2K)
             {
-                if((VsCommands2K)cmd == VsCommands2K.EXCLUDEFROMPROJECT)
+                if ((VsCommands2K) cmd == VsCommands2K.EXCLUDEFROMPROJECT)
                 {
                     result |= QueryStatusResult.NOTSUPPORTED;
                     return VSConstants.S_OK;
@@ -147,13 +156,13 @@ namespace VsTeXProject.VisualStudio.Project
             }
             else
             {
-                return (int)OleConstants.OLECMDERR_E_UNKNOWNGROUP;
+                return (int) OleConstants.OLECMDERR_E_UNKNOWNGROUP;
             }
             return base.QueryStatusOnNode(cmdGroup, cmd, pCmdText, ref result);
         }
 
         /// <summary>
-        /// DependentFileNodes node cannot be dragged.
+        ///     DependentFileNodes node cannot be dragged.
         /// </summary>
         /// <returns>null</returns>
         protected internal override StringBuilder PrepareSelectedNodesForClipBoard()
@@ -167,17 +176,17 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Redraws the state icon if the node is not excluded from source control.
+        ///     Redraws the state icon if the node is not excluded from source control.
         /// </summary>
         [SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "Scc")]
         protected internal override void UpdateSccStateIcons()
         {
-            if(!this.ExcludeNodeFromScc)
+            if (!ExcludeNodeFromScc)
             {
-                this.Parent.ReDraw(UIHierarchyElement.SccState);
+                Parent.ReDraw(UIHierarchyElement.SccState);
             }
         }
-        #endregion
 
+        #endregion
     }
 }

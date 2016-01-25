@@ -46,103 +46,103 @@ a particular purpose and non-infringement.
 
 ********************************************************************************************/
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Threading;
+using System.Windows.Forms;
+using Microsoft.VisualStudio.Shell;
+
 namespace VsTeXProject.VisualStudio.Project
 {
-    using Microsoft.VisualStudio.Shell;
-    using System;
-    using System.Diagnostics;
-    using System.Globalization;
-    using System.Threading;
-    using System.Windows.Forms;
-
     internal sealed class UIThread : IDisposable
     {
-        private WindowsFormsSynchronizationContext synchronizationContext;
-#if DEBUG
         /// <summary>
-        /// Stack trace when synchronizationContext was captured
-        /// </summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1823:AvoidUnusedPrivateFields")]
-        private StackTrace captureStackTrace;
-#endif
-
-        private Thread uithread; 
-
-        /// <summary>
-        /// RunSync puts orignal exception stacktrace to Exception.Data by this key if action throws on UI thread
+        ///     RunSync puts orignal exception stacktrace to Exception.Data by this key if action throws on UI thread
         /// </summary>
         /// WrappedStacktraceKey is a string to keep exception serializable.
         private const string WrappedStacktraceKey = "$$Microsoft.VisualStudio.Package.UIThread.WrappedStacktraceKey$$";
 
         /// <summary>
-        /// The singleton instance.
+        ///     The singleton instance.
         /// </summary>
         private static volatile UIThread instance = new UIThread();
 
+#if DEBUG
+        /// <summary>
+        ///     Stack trace when synchronizationContext was captured
+        /// </summary>
+        [SuppressMessage("Microsoft.Performance", "CA1823:AvoidUnusedPrivateFields")] private StackTrace
+            captureStackTrace;
+#endif
+        private WindowsFormsSynchronizationContext synchronizationContext;
+
+        private Thread uithread;
+
         internal UIThread()
         {
-            this.Initialize();
+            Initialize();
         }
 
         /// <summary>
-        /// Gets the singleton instance
+        ///     Gets the singleton instance
         /// </summary>
         public static UIThread Instance
         {
-            get
-            {
-                return instance;
-            }
+            get { return instance; }
         }
 
         /// <summary>
-        /// Checks whether this is the UI thread.
+        ///     Checks whether this is the UI thread.
         /// </summary>
         public bool IsUIThread
         {
-            get { return this.uithread == System.Threading.Thread.CurrentThread; }
+            get { return uithread == Thread.CurrentThread; }
         }
 
         /// <summary>
-        /// Gets a value indicating whether unit tests are running.
+        ///     Gets a value indicating whether unit tests are running.
         /// </summary>
         internal static bool IsUnitTest { get; set; }
 
         #region IDisposable Members
+
         /// <summary>
-        /// Dispose implementation.
+        ///     Dispose implementation.
         /// </summary>
         public void Dispose()
         {
-            if (this.synchronizationContext != null)
+            if (synchronizationContext != null)
             {
-                this.synchronizationContext.Dispose();
+                synchronizationContext.Dispose();
             }
         }
 
         #endregion
 
         /// <summary>
-        /// Initializes unit testing mode for this object
+        ///     Initializes unit testing mode for this object
         /// </summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
+        [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal void InitUnitTestingMode()
         {
-            Debug.Assert(this.synchronizationContext == null, "Context has already been captured; too late to InitUnitTestingMode");
+            Debug.Assert(synchronizationContext == null,
+                "Context has already been captured; too late to InitUnitTestingMode");
             IsUnitTest = true;
         }
 
         [Conditional("DEBUG")]
         internal void MustBeCalledFromUIThread()
         {
-            Debug.Assert(this.uithread == System.Threading.Thread.CurrentThread || IsUnitTest, "This must be called from the GUI thread");
+            Debug.Assert(uithread == Thread.CurrentThread || IsUnitTest, "This must be called from the GUI thread");
         }
 
         /// <summary>
-        /// Runs an action asynchronously on an associated forms synchronization context.
+        ///     Runs an action asynchronously on an associated forms synchronization context.
         /// </summary>
         /// <param name="a">The action to run</param>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
+        [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
         internal void Run(Action a)
         {
             if (IsUnitTest)
@@ -150,22 +150,26 @@ namespace VsTeXProject.VisualStudio.Project
                 a();
                 return;
             }
-            Debug.Assert(this.synchronizationContext != null, "The SynchronizationContext must be captured before calling this method");
+            Debug.Assert(synchronizationContext != null,
+                "The SynchronizationContext must be captured before calling this method");
 #if DEBUG
-            StackTrace stackTrace = new StackTrace(true);
+            var stackTrace = new StackTrace(true);
 #endif
-            this.synchronizationContext.Post(delegate(object ignore)
+            synchronizationContext.Post(delegate
             {
                 try
                 {
-                    this.MustBeCalledFromUIThread();
+                    MustBeCalledFromUIThread();
                     a();
                 }
 #if DEBUG
                 catch (Exception e)
                 {
                     // swallow, random exceptions should not kill process
-                    Debug.Assert(false, string.Format(CultureInfo.InvariantCulture, "UIThread.Run caught and swallowed exception: {0}\n\noriginally invoked from stack:\n{1}", e.ToString(), stackTrace.ToString()));
+                    Debug.Assert(false,
+                        string.Format(CultureInfo.InvariantCulture,
+                            "UIThread.Run caught and swallowed exception: {0}\n\noriginally invoked from stack:\n{1}", e,
+                            stackTrace));
                 }
 #else
                 catch (Exception)
@@ -174,14 +178,14 @@ namespace VsTeXProject.VisualStudio.Project
                 }
 #endif
             }, null);
-
         }
 
         /// <summary>
-        /// Runs an action synchronously on an associated forms synchronization context
+        ///     Runs an action synchronously on an associated forms synchronization context
         /// </summary>
         /// <param name="a">The action to run.</param>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
+        [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode"),
+         SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
         internal void RunSync(Action a)
         {
             if (IsUnitTest)
@@ -189,15 +193,17 @@ namespace VsTeXProject.VisualStudio.Project
                 a();
                 return;
             }
-            Exception exn = null; ;
-            Debug.Assert(this.synchronizationContext != null, "The SynchronizationContext must be captured before calling this method");
-            
+            Exception exn = null;
+            ;
+            Debug.Assert(synchronizationContext != null,
+                "The SynchronizationContext must be captured before calling this method");
+
             // Send on UI thread will execute immediately.
-            this.synchronizationContext.Send(ignore =>
+            synchronizationContext.Send(ignore =>
             {
                 try
                 {
-                    this.MustBeCalledFromUIThread();
+                    MustBeCalledFromUIThread();
                     a();
                 }
                 catch (Exception e)
@@ -205,7 +211,7 @@ namespace VsTeXProject.VisualStudio.Project
                     exn = e;
                 }
             }, null
-            );
+                );
             if (exn != null)
             {
                 // throw exception on calling thread, preserve stacktrace
@@ -215,17 +221,17 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Performs a callback on the UI thread, blocking until the action completes.  Uses the VS mechanism 
-        /// of marshalling back to the main STA thread via COM RPC.
+        ///     Performs a callback on the UI thread, blocking until the action completes.  Uses the VS mechanism
+        ///     of marshalling back to the main STA thread via COM RPC.
         /// </summary>
         internal static T DoOnUIThread<T>(Func<T> callback)
         {
-            return ThreadHelper.Generic.Invoke<T>(callback);
+            return ThreadHelper.Generic.Invoke(callback);
         }
 
         /// <summary>
-        /// Performs a callback on the UI thread, blocking until the action completes.  Uses the VS mechanism 
-        /// of marshalling back to the main STA thread via COM RPC.
+        ///     Performs a callback on the UI thread, blocking until the action completes.  Uses the VS mechanism
+        ///     of marshalling back to the main STA thread via COM RPC.
         /// </summary>
         internal static void DoOnUIThread(Action callback)
         {
@@ -233,36 +239,38 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Initializes this object.
+        ///     Initializes this object.
         /// </summary>
         private void Initialize()
         {
             if (IsUnitTest) return;
-            this.uithread = System.Threading.Thread.CurrentThread;
+            uithread = Thread.CurrentThread;
 
-            if (this.synchronizationContext == null)
+            if (synchronizationContext == null)
             {
 #if DEBUG
-                 // This is a handy place to do this, since the product and all interesting unit tests
-                 // must go through this code path.
-                 AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(delegate(object sender, UnhandledExceptionEventArgs args)
-                 {
-                     if (args.IsTerminating)
-                     {
-                         string s = String.Format(CultureInfo.InvariantCulture, "An unhandled exception is about to terminate the process.  Exception info:\n{0}", args.ExceptionObject.ToString());
-                         Debug.Assert(false, s);
-                     }
-                 });
+                // This is a handy place to do this, since the product and all interesting unit tests
+                // must go through this code path.
+                AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs args)
+                {
+                    if (args.IsTerminating)
+                    {
+                        var s = string.Format(CultureInfo.InvariantCulture,
+                            "An unhandled exception is about to terminate the process.  Exception info:\n{0}",
+                            args.ExceptionObject);
+                        Debug.Assert(false, s);
+                    }
+                };
 
-                 this.captureStackTrace = new StackTrace(true);
+                captureStackTrace = new StackTrace(true);
 #endif
-                this.synchronizationContext = new WindowsFormsSynchronizationContext();
+                synchronizationContext = new WindowsFormsSynchronizationContext();
             }
             else
             {
-                 // Make sure we are always capturing the same thread.
-                 Debug.Assert(this.uithread == Thread.CurrentThread);
+                // Make sure we are always capturing the same thread.
+                Debug.Assert(uithread == Thread.CurrentThread);
             }
-        }       
+        }
     }
 }

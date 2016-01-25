@@ -145,10 +145,6 @@
   <data name="BuildVerbosityDescription" xml:space="preserve">
     <value>Specify how much information is included in the build output</value>
   </data>
-  <data name="cli1" xml:space="preserve">
-    <value>ECMA-335 CLI compatible framework (location must be provided)</value>
-    <comment>Target platform drop down option</comment>
-  </data>
   <data name="Compile" xml:space="preserve">
     <value>Compile.</value>
     <comment>Build Action - drop down option</comment>
@@ -213,9 +209,6 @@
   </data>
   <data name="ErrorSaving" xml:space="preserve">
     <value>Error Saving File</value>
-  </data>
-  <data name="Exe" xml:space="preserve">
-    <value>Console Application</value>
   </data>
   <data name="ExpectedObjectOfType" xml:space="preserve">
     <value>Expecting object of type {0}.</value>
@@ -326,9 +319,6 @@
   <data name="RenameFolder" xml:space="preserve">
     <value>Rename directory failed. {0}</value>
   </data>
-  <data name="RTL" xml:space="preserve">
-    <value>RTL_False</value>
-  </data>
   <data name="SaveCaption" xml:space="preserve">
     <value>Save?</value>
   </data>
@@ -340,9 +330,6 @@
   </data>
   <data name="StandardEditorViewError" xml:space="preserve">
     <value>Error opening specified view '{0}' using standard editor.</value>
-  </data>
-  <data name="URL" xml:space="preserve">
-    <value>URL</value>
   </data>
   <data name="UseOfDeletedItemError" xml:space="preserve">
     <value>You are trying to use an item that has already been deleted or that does not exist.</value>
@@ -358,9 +345,6 @@
   </data>
   <data name="Warning" xml:space="preserve">
     <value>warning</value>
-  </data>
-  <data name="WinExe" xml:space="preserve">
-    <value>Windows Application</value>
   </data>
   <data name="AddReferenceDialogTitle" xml:space="preserve">
     <value>Add Reference</value>

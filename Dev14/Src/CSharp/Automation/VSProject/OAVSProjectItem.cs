@@ -55,63 +55,56 @@ using VSLangProj;
 namespace VsTeXProject.VisualStudio.Project.Automation
 {
     /// <summary>
-    /// Represents a language-specific project item
+    ///     Represents a language-specific project item
     /// </summary>
     [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "OAVS")]
     [ComVisible(true), CLSCompliant(false)]
     public class OAVSProjectItem : VSProjectItem
     {
         #region fields
-        private FileNode fileNode;
+
         #endregion
 
         #region ctors
+
         public OAVSProjectItem(FileNode fileNode)
         {
-            this.FileNode = fileNode;
+            FileNode = fileNode;
         }
+
+        #endregion
+
+        #region public properties
+
+        /// <summary>
+        ///     File Node property
+        /// </summary>
+        public FileNode FileNode { get; set; }
+
         #endregion
 
         #region VSProjectItem Members
 
         public virtual EnvDTE.Project ContainingProject
         {
-            get { return fileNode.ProjectMgr.GetAutomationObject() as EnvDTE.Project; }
+            get { return FileNode.ProjectMgr.GetAutomationObject() as EnvDTE.Project; }
         }
 
         public virtual ProjectItem ProjectItem
         {
-            get { return fileNode.GetAutomationObject() as ProjectItem; }
+            get { return FileNode.GetAutomationObject() as ProjectItem; }
         }
 
         public virtual DTE DTE
         {
-            get { return (DTE)this.fileNode.ProjectMgr.Site.GetService(typeof(DTE)); }
+            get { return (DTE) FileNode.ProjectMgr.Site.GetService(typeof (DTE)); }
         }
 
         public virtual void RunCustomTool()
         {
-            this.FileNode.RunGenerator();
+            FileNode.RunGenerator();
         }
 
         #endregion
-
-        #region public properties
-        /// <summary>
-        /// File Node property
-        /// </summary>
-        public FileNode FileNode
-        {
-            get
-            {
-                return fileNode;
-            }
-            set
-            {
-                fileNode = value;
-            }
-        }
-        #endregion
-
     }
 }

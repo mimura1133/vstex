@@ -115,9 +115,6 @@
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="CustomProjectPackage.cs" />
     <Compile Include="Resources.cs" />
-    <EmbeddedResource Include="Resources.ja-JP.resx">
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <EmbeddedResource Include="Resources\icon.bmp" />
     <Content Include="License.txt" />
     <ZipItem Include="Templates\ProjectItems\TeXProject\Plain.tex" />
@@ -132,9 +129,6 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources.resx">
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="VisualStudio.Project.resx">
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="VSPackage.resx">

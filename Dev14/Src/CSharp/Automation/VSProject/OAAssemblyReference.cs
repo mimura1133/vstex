@@ -64,11 +64,12 @@ namespace VsTeXProject.VisualStudio.Project.Automation
         }
 
         #region Reference override
+
         public override int BuildNumber
         {
             get
             {
-                if((null == BaseReferenceNode.ResolvedAssembly) ||
+                if ((null == BaseReferenceNode.ResolvedAssembly) ||
                     (null == BaseReferenceNode.ResolvedAssembly.Version))
                 {
                     return 0;
@@ -76,11 +77,12 @@ namespace VsTeXProject.VisualStudio.Project.Automation
                 return BaseReferenceNode.ResolvedAssembly.Version.Build;
             }
         }
+
         public override string Culture
         {
             get
             {
-                if((null == BaseReferenceNode.ResolvedAssembly) ||
+                if ((null == BaseReferenceNode.ResolvedAssembly) ||
                     (null == BaseReferenceNode.ResolvedAssembly.CultureInfo))
                 {
                     return string.Empty;
@@ -88,6 +90,7 @@ namespace VsTeXProject.VisualStudio.Project.Automation
                 return BaseReferenceNode.ResolvedAssembly.CultureInfo.Name;
             }
         }
+
         public override string Identity
         {
             get
@@ -95,18 +98,19 @@ namespace VsTeXProject.VisualStudio.Project.Automation
                 // Note that in this function we use the assembly name instead of the resolved one
                 // because the identity of this reference is the assembly name needed by the project,
                 // not the specific instance found in this machine / environment.
-                if(null == BaseReferenceNode.AssemblyName)
+                if (null == BaseReferenceNode.AssemblyName)
                 {
                     return null;
                 }
                 return BaseReferenceNode.AssemblyName.FullName;
             }
         }
+
         public override int MajorVersion
         {
             get
             {
-                if((null == BaseReferenceNode.ResolvedAssembly) ||
+                if ((null == BaseReferenceNode.ResolvedAssembly) ||
                     (null == BaseReferenceNode.ResolvedAssembly.Version))
                 {
                     return 0;
@@ -114,11 +118,12 @@ namespace VsTeXProject.VisualStudio.Project.Automation
                 return BaseReferenceNode.ResolvedAssembly.Version.Major;
             }
         }
+
         public override int MinorVersion
         {
             get
             {
-                if((null == BaseReferenceNode.ResolvedAssembly) ||
+                if ((null == BaseReferenceNode.ResolvedAssembly) ||
                     (null == BaseReferenceNode.ResolvedAssembly.Version))
                 {
                     return 0;
@@ -131,14 +136,14 @@ namespace VsTeXProject.VisualStudio.Project.Automation
         {
             get
             {
-                if((null == BaseReferenceNode.ResolvedAssembly) ||
-                (null == BaseReferenceNode.ResolvedAssembly.GetPublicKeyToken()))
+                if ((null == BaseReferenceNode.ResolvedAssembly) ||
+                    (null == BaseReferenceNode.ResolvedAssembly.GetPublicKeyToken()))
                 {
                     return null;
                 }
-                StringBuilder builder = new StringBuilder();
-                byte[] publicKeyToken = BaseReferenceNode.ResolvedAssembly.GetPublicKeyToken();
-                for(int i = 0; i < publicKeyToken.Length; i++)
+                var builder = new StringBuilder();
+                var publicKeyToken = BaseReferenceNode.ResolvedAssembly.GetPublicKeyToken();
+                for (var i = 0; i < publicKeyToken.Length; i++)
                 {
                     builder.AppendFormat("{0:x}", publicKeyToken[i]);
                 }
@@ -150,22 +155,23 @@ namespace VsTeXProject.VisualStudio.Project.Automation
         {
             get
             {
-                if(null != BaseReferenceNode.ResolvedAssembly)
+                if (null != BaseReferenceNode.ResolvedAssembly)
                 {
                     return BaseReferenceNode.ResolvedAssembly.Name;
                 }
-                if(null != BaseReferenceNode.AssemblyName)
+                if (null != BaseReferenceNode.AssemblyName)
                 {
                     return BaseReferenceNode.AssemblyName.Name;
                 }
                 return null;
             }
         }
+
         public override int RevisionNumber
         {
             get
             {
-                if((null == BaseReferenceNode.ResolvedAssembly) ||
+                if ((null == BaseReferenceNode.ResolvedAssembly) ||
                     (null == BaseReferenceNode.ResolvedAssembly.Version))
                 {
                     return 0;
@@ -173,11 +179,12 @@ namespace VsTeXProject.VisualStudio.Project.Automation
                 return BaseReferenceNode.ResolvedAssembly.Version.Revision;
             }
         }
+
         public override bool StrongName
         {
             get
             {
-                if((null == BaseReferenceNode.ResolvedAssembly) ||
+                if ((null == BaseReferenceNode.ResolvedAssembly) ||
                     (0 == (BaseReferenceNode.ResolvedAssembly.Flags & AssemblyNameFlags.PublicKey)))
                 {
                     return false;
@@ -185,18 +192,17 @@ namespace VsTeXProject.VisualStudio.Project.Automation
                 return true;
             }
         }
+
         public override prjReferenceType Type
         {
-            get
-            {
-                return prjReferenceType.prjReferenceTypeAssembly;
-            }
+            get { return prjReferenceType.prjReferenceTypeAssembly; }
         }
+
         public override string Version
         {
             get
             {
-                if((null == BaseReferenceNode.ResolvedAssembly) ||
+                if ((null == BaseReferenceNode.ResolvedAssembly) ||
                     (null == BaseReferenceNode.ResolvedAssembly.Version))
                 {
                     return string.Empty;
@@ -204,6 +210,7 @@ namespace VsTeXProject.VisualStudio.Project.Automation
                 return BaseReferenceNode.ResolvedAssembly.Version.ToString();
             }
         }
+
         #endregion
     }
 }

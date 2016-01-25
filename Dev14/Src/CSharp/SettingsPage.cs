@@ -48,6 +48,7 @@ a particular purpose and non-infringement.
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Globalization;
@@ -61,9 +62,8 @@ using Microsoft.VisualStudio.Shell.Interop;
 
 namespace VsTeXProject.VisualStudio.Project
 {
-
     /// <summary>
-    /// The base class for property pages.
+    ///     The base class for property pages.
     /// </summary>
     [CLSCompliant(false), ComVisible(true)]
     public abstract class SettingsPage :
@@ -71,136 +71,140 @@ namespace VsTeXProject.VisualStudio.Project
         IPropertyPage,
         IDisposable
     {
+        #region IDisposable Members
+
+        /// <summary>
+        ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
+
+        private void Dispose(bool disposing)
+        {
+            if (!isDisposed)
+            {
+                lock (Mutex)
+                {
+                    if (disposing)
+                    {
+                        ThePanel.Dispose();
+                    }
+
+                    isDisposed = true;
+                }
+            }
+        }
+
         #region fields
-        private Panel panel;
+
         private bool active;
         private bool dirty;
         private IPropertyPageSite site;
-        private ProjectNode project;
         private ProjectConfig[] projectConfigs;
-        private IVSMDPropertyGrid grid;
-        private string name;
         private static volatile object Mutex = new object();
         private bool isDisposed;
+
         #endregion
 
         #region properties
 
         [Browsable(false)]
         [AutomationBrowsable(false)]
-        public string Name
-        {
-            get
-            {
-                return this.name;
-            }
-            set
-            {
-                this.name = value;
-            }
-        }
+        public string Name { get; set; }
 
         [Browsable(false)]
         [AutomationBrowsable(false)]
-        public ProjectNode ProjectMgr
-        {
-            get
-            {
-                return this.project;
-            }
-        }
+        public ProjectNode ProjectMgr { get; private set; }
 
-        protected IVSMDPropertyGrid Grid
-        {
-            get { return this.grid; }
-        }
+        protected IVSMDPropertyGrid Grid { get; private set; }
 
         protected bool IsDirty
         {
-            get
-            {
-                return this.dirty;
-            }
+            get { return dirty; }
             set
             {
-                if(this.dirty != value)
+                if (dirty != value)
                 {
-                    this.dirty = value;
-                    if(this.site != null)
-                        site.OnStatusChange((uint)(this.dirty ? PropPageStatus.Dirty : PropPageStatus.Clean));
+                    dirty = value;
+                    if (site != null)
+                        site.OnStatusChange((uint) (dirty ? PropPageStatus.Dirty : PropPageStatus.Clean));
                 }
             }
         }
-        protected Panel ThePanel
-        {
-            get
-            {
-                return this.panel;
-            }
-        }
-        #endregion		
+
+        protected Panel ThePanel { get; private set; }
+
+        #endregion
 
         #region abstract methods
+
         protected abstract void BindProperties();
         protected abstract int ApplyChanges();
+
         #endregion
 
         #region public methods
+
         public object GetTypedConfigProperty(string name, Type type)
         {
-            string value = GetConfigProperty(name);
-            if(string.IsNullOrEmpty(value)) return null;
+            var value = GetConfigProperty(name);
+            if (string.IsNullOrEmpty(value)) return null;
 
-            TypeConverter tc = TypeDescriptor.GetConverter(type);
+            var tc = TypeDescriptor.GetConverter(type);
             return tc.ConvertFromInvariantString(value);
         }
 
         public object GetTypedProperty(string name, Type type)
         {
-            string value = GetProperty(name);
-            if(string.IsNullOrEmpty(value)) return null;
+            var value = GetProperty(name);
+            if (string.IsNullOrEmpty(value)) return null;
 
-            TypeConverter tc = TypeDescriptor.GetConverter(type);
+            var tc = TypeDescriptor.GetConverter(type);
             return tc.ConvertFromInvariantString(value);
         }
 
         public string GetProperty(string propertyName)
         {
-            if(this.ProjectMgr != null)
+            if (ProjectMgr != null)
             {
                 string property;
-                bool found = this.ProjectMgr.BuildProject.GlobalProperties.TryGetValue(propertyName, out property);
+                var found = ProjectMgr.BuildProject.GlobalProperties.TryGetValue(propertyName, out property);
 
-                if(found)
+                if (found)
                 {
                     return property;
                 }
             }
 
-            return String.Empty;
+            return string.Empty;
         }
 
         // relative to active configuration.
         public string GetConfigProperty(string propertyName)
         {
-            if(this.ProjectMgr != null)
+            if (ProjectMgr != null)
             {
                 string unifiedResult = null;
-                bool cacheNeedReset = true;
+                var cacheNeedReset = true;
 
-                for(int i = 0; i < this.projectConfigs.Length; i++)
+                for (var i = 0; i < projectConfigs.Length; i++)
                 {
-                    ProjectConfig config = projectConfigs[i];
-                    string property = config.GetConfigurationProperty(propertyName, cacheNeedReset);
+                    var config = projectConfigs[i];
+                    var property = config.GetConfigurationProperty(propertyName, cacheNeedReset);
                     cacheNeedReset = false;
 
-                    if(property != null)
+                    if (property != null)
                     {
-                        string text = property.Trim();
+                        var text = property.Trim();
 
-                        if(i == 0)
+                        if (i == 0)
                             unifiedResult = text;
-                        else if(unifiedResult != text)
+                        else if (unifiedResult != text)
                             return ""; // tristate value is blank then
                     }
                 }
@@ -208,99 +212,100 @@ namespace VsTeXProject.VisualStudio.Project
                 return unifiedResult;
             }
 
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
-        /// Sets the value of a configuration dependent property.
-        /// If the attribute does not exist it is created.  
-        /// If value is null it will be set to an empty string.
+        ///     Sets the value of a configuration dependent property.
+        ///     If the attribute does not exist it is created.
+        ///     If value is null it will be set to an empty string.
         /// </summary>
         /// <param name="name">property name.</param>
         /// <param name="value">value of property</param>
         public void SetConfigProperty(string name, string value)
         {
             CCITracing.TraceCall();
-            if(value == null)
+            if (value == null)
             {
-                value = String.Empty;
+                value = string.Empty;
             }
 
-            if(this.ProjectMgr != null)
+            if (ProjectMgr != null)
             {
-                for(int i = 0, n = this.projectConfigs.Length; i < n; i++)
+                for (int i = 0, n = projectConfigs.Length; i < n; i++)
                 {
-                    ProjectConfig config = projectConfigs[i];
+                    var config = projectConfigs[i];
 
                     config.SetConfigurationProperty(name, value);
                 }
 
-                this.ProjectMgr.SetProjectFileDirty(true);
+                ProjectMgr.SetProjectFileDirty(true);
             }
         }
 
         #endregion
 
         #region IPropertyPage methods.
+
         public virtual void Activate(IntPtr parent, RECT[] pRect, int bModal)
         {
-            if(this.panel == null)
+            if (ThePanel == null)
             {
                 if (pRect == null)
                 {
                     throw new ArgumentNullException("pRect");
                 }
 
-                this.panel = new Panel();
-                this.panel.Size = new Size(pRect[0].right - pRect[0].left, pRect[0].bottom - pRect[0].top);
-                this.panel.Text = SR.GetString(SR.Settings, CultureInfo.CurrentUICulture);
-                this.panel.Visible = false;
-                this.panel.Size = new Size(550, 300);
-                this.panel.CreateControl();
-                NativeMethods.SetParent(this.panel.Handle, parent);
+                ThePanel = new Panel();
+                ThePanel.Size = new Size(pRect[0].right - pRect[0].left, pRect[0].bottom - pRect[0].top);
+                ThePanel.Text = SR.GetString(SR.Settings, CultureInfo.CurrentUICulture);
+                ThePanel.Visible = false;
+                ThePanel.Size = new Size(550, 300);
+                ThePanel.CreateControl();
+                NativeMethods.SetParent(ThePanel.Handle, parent);
             }
 
-            if(this.grid == null && this.project != null && this.project.Site != null)
+            if (Grid == null && ProjectMgr != null && ProjectMgr.Site != null)
             {
-                IVSMDPropertyBrowser pb = this.project.Site.GetService(typeof(IVSMDPropertyBrowser)) as IVSMDPropertyBrowser;
-                this.grid = pb.CreatePropertyGrid();
+                var pb = ProjectMgr.Site.GetService(typeof (IVSMDPropertyBrowser)) as IVSMDPropertyBrowser;
+                Grid = pb.CreatePropertyGrid();
             }
 
-            if(this.grid != null)
+            if (Grid != null)
             {
-                this.active = true;
+                active = true;
 
 
-                Control cGrid = Control.FromHandle(new IntPtr(this.grid.Handle));
+                var cGrid = Control.FromHandle(new IntPtr(Grid.Handle));
 
-                cGrid.Parent = Control.FromHandle(parent);//this.panel;
+                cGrid.Parent = Control.FromHandle(parent); //this.panel;
                 cGrid.Size = new Size(544, 294);
                 cGrid.Location = new Point(3, 3);
                 cGrid.Visible = true;
-                this.grid.SetOption(_PROPERTYGRIDOPTION.PGOPT_TOOLBAR, false);
-                this.grid.GridSort = _PROPERTYGRIDSORT.PGSORT_CATEGORIZED | _PROPERTYGRIDSORT.PGSORT_ALPHABETICAL;
-                NativeMethods.SetParent(new IntPtr(this.grid.Handle), this.panel.Handle);
+                Grid.SetOption(_PROPERTYGRIDOPTION.PGOPT_TOOLBAR, false);
+                Grid.GridSort = _PROPERTYGRIDSORT.PGSORT_CATEGORIZED | _PROPERTYGRIDSORT.PGSORT_ALPHABETICAL;
+                NativeMethods.SetParent(new IntPtr(Grid.Handle), ThePanel.Handle);
                 UpdateObjects();
             }
         }
 
         public virtual int Apply()
         {
-            if(IsDirty)
+            if (IsDirty)
             {
-                return this.ApplyChanges();
+                return ApplyChanges();
             }
             return VSConstants.S_OK;
         }
 
         public virtual void Deactivate()
         {
-            if(null != this.panel)
+            if (null != ThePanel)
             {
-                this.panel.Dispose();
-                this.panel = null;
+                ThePanel.Dispose();
+                ThePanel = null;
             }
-            this.active = false;
+            active = false;
         }
 
         public virtual void GetPageInfo(PROPPAGEINFO[] arrInfo)
@@ -310,13 +315,13 @@ namespace VsTeXProject.VisualStudio.Project
                 throw new ArgumentNullException("arrInfo");
             }
 
-            PROPPAGEINFO info = new PROPPAGEINFO();
+            var info = new PROPPAGEINFO();
 
-            info.cb = (uint)Marshal.SizeOf(typeof(PROPPAGEINFO));
+            info.cb = (uint) Marshal.SizeOf(typeof (PROPPAGEINFO));
             info.dwHelpContext = 0;
             info.pszDocString = null;
             info.pszHelpFile = null;
-            info.pszTitle = this.name;
+            info.pszTitle = Name;
             info.SIZE.cx = 550;
             info.SIZE.cy = 300;
             arrInfo[0] = info;
@@ -329,7 +334,7 @@ namespace VsTeXProject.VisualStudio.Project
         public virtual int IsPageDirty()
         {
             // Note this returns an HRESULT not a Bool.
-            return (IsDirty ? (int)VSConstants.S_OK : (int)VSConstants.S_FALSE);
+            return IsDirty ? VSConstants.S_OK : VSConstants.S_FALSE;
         }
 
         public virtual void Move(RECT[] arrRect)
@@ -338,11 +343,11 @@ namespace VsTeXProject.VisualStudio.Project
             {
                 throw new ArgumentNullException("arrRect");
             }
-            
-            RECT r = arrRect[0];
 
-            this.panel.Location = new Point(r.left, r.top);
-            this.panel.Size = new Size(r.right - r.left, r.bottom - r.top);
+            var r = arrRect[0];
+
+            ThePanel.Location = new Point(r.left, r.top);
+            ThePanel.Size = new Size(r.right - r.left, r.bottom - r.top);
         }
 
         public virtual void SetObjects(uint count, object[] punk)
@@ -352,51 +357,51 @@ namespace VsTeXProject.VisualStudio.Project
                 return;
             }
 
-            if(count > 0)
+            if (count > 0)
             {
-                if(punk[0] is ProjectConfig)
+                if (punk[0] is ProjectConfig)
                 {
-                    ArrayList configs = new ArrayList();
+                    var configs = new ArrayList();
 
-                    for(int i = 0; i < count; i++)
+                    for (var i = 0; i < count; i++)
                     {
-                        ProjectConfig config = (ProjectConfig)punk[i];
+                        var config = (ProjectConfig) punk[i];
 
-                        if(this.project == null || (this.project != (punk[0] as ProjectConfig).ProjectMgr))
+                        if (ProjectMgr == null || (ProjectMgr != (punk[0] as ProjectConfig).ProjectMgr))
                         {
-                            this.project = config.ProjectMgr;
+                            ProjectMgr = config.ProjectMgr;
                         }
 
                         configs.Add(config);
                     }
 
-                    this.projectConfigs = (ProjectConfig[])configs.ToArray(typeof(ProjectConfig));
+                    projectConfigs = (ProjectConfig[]) configs.ToArray(typeof (ProjectConfig));
                 }
-                else if(punk[0] is NodeProperties)
+                else if (punk[0] is NodeProperties)
                 {
-                    if (this.project == null || (this.project != (punk[0] as NodeProperties).Node.ProjectMgr))
+                    if (ProjectMgr == null || (ProjectMgr != (punk[0] as NodeProperties).Node.ProjectMgr))
                     {
-                        this.project = (punk[0] as NodeProperties).Node.ProjectMgr;
+                        ProjectMgr = (punk[0] as NodeProperties).Node.ProjectMgr;
                     }
 
-                    System.Collections.Generic.Dictionary<string, ProjectConfig> configsMap = new System.Collections.Generic.Dictionary<string, ProjectConfig>();
+                    var configsMap = new Dictionary<string, ProjectConfig>();
 
-                    for(int i = 0; i < count; i++)
+                    for (var i = 0; i < count; i++)
                     {
-                        NodeProperties property = (NodeProperties)punk[i];
+                        var property = (NodeProperties) punk[i];
                         IVsCfgProvider provider;
                         ErrorHandler.ThrowOnFailure(property.Node.ProjectMgr.GetCfgProvider(out provider));
-                        uint[] expected = new uint[1];
+                        var expected = new uint[1];
                         ErrorHandler.ThrowOnFailure(provider.GetCfgs(0, null, expected, null));
-                        if(expected[0] > 0)
+                        if (expected[0] > 0)
                         {
-                            ProjectConfig[] configs = new ProjectConfig[expected[0]];
-                            uint[] actual = new uint[1];
+                            var configs = new ProjectConfig[expected[0]];
+                            var actual = new uint[1];
                             ErrorHandler.ThrowOnFailure(provider.GetCfgs(expected[0], configs, actual, null));
 
-                            foreach(ProjectConfig config in configs)
+                            foreach (var config in configs)
                             {
-                                if(!configsMap.ContainsKey(config.ConfigName))
+                                if (!configsMap.ContainsKey(config.ConfigName))
                                 {
                                     configsMap.Add(config.ConfigName, config);
                                 }
@@ -404,22 +409,22 @@ namespace VsTeXProject.VisualStudio.Project
                         }
                     }
 
-                    if(configsMap.Count > 0)
+                    if (configsMap.Count > 0)
                     {
-                        if(this.projectConfigs == null)
+                        if (projectConfigs == null)
                         {
-                            this.projectConfigs = new ProjectConfig[configsMap.Keys.Count];
+                            projectConfigs = new ProjectConfig[configsMap.Keys.Count];
                         }
-                        configsMap.Values.CopyTo(this.projectConfigs, 0);
+                        configsMap.Values.CopyTo(projectConfigs, 0);
                     }
                 }
             }
             else
             {
-                this.project = null;
+                ProjectMgr = null;
             }
 
-            if(this.active && this.project != null)
+            if (active && ProjectMgr != null)
             {
                 UpdateObjects();
             }
@@ -428,13 +433,13 @@ namespace VsTeXProject.VisualStudio.Project
 
         public virtual void SetPageSite(IPropertyPageSite theSite)
         {
-            this.site = theSite;
+            site = theSite;
         }
 
         public virtual void Show(uint cmd)
         {
-            this.panel.Visible = true; // TODO: pass SW_SHOW* flags through      
-            this.panel.Show();
+            ThePanel.Visible = true; // TODO: pass SW_SHOW* flags through      
+            ThePanel.Show();
         }
 
         public virtual int TranslateAccelerator(MSG[] arrMsg)
@@ -444,12 +449,13 @@ namespace VsTeXProject.VisualStudio.Project
                 throw new ArgumentNullException("arrMsg");
             }
 
-            MSG msg = arrMsg[0];
+            var msg = arrMsg[0];
 
-            if((msg.message < NativeMethods.WM_KEYFIRST || msg.message > NativeMethods.WM_KEYLAST) && (msg.message < NativeMethods.WM_MOUSEFIRST || msg.message > NativeMethods.WM_MOUSELAST))
+            if ((msg.message < NativeMethods.WM_KEYFIRST || msg.message > NativeMethods.WM_KEYLAST) &&
+                (msg.message < NativeMethods.WM_MOUSEFIRST || msg.message > NativeMethods.WM_MOUSELAST))
                 return 1;
 
-            return (NativeMethods.IsDialogMessageA(this.panel.Handle, ref msg)) ? 0 : 1;
+            return NativeMethods.IsDialogMessageA(ThePanel.Handle, ref msg) ? 0 : 1;
         }
 
         #endregion
@@ -458,68 +464,40 @@ namespace VsTeXProject.VisualStudio.Project
 
         protected ProjectConfig[] GetProjectConfigurations()
         {
-            return this.projectConfigs;
+            return projectConfigs;
         }
 
         protected void UpdateObjects()
         {
-            if(this.projectConfigs != null && this.project != null)
+            if (projectConfigs != null && ProjectMgr != null)
             {
                 // Demand unmanaged permissions in order to access unmanaged memory.
                 new SecurityPermission(SecurityPermissionFlag.UnmanagedCode).Demand();
 
-                IntPtr p = Marshal.GetIUnknownForObject(this);
-                IntPtr ppUnk = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof(IntPtr)));
+                var p = Marshal.GetIUnknownForObject(this);
+                var ppUnk = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof (IntPtr)));
                 try
                 {
                     Marshal.WriteIntPtr(ppUnk, p);
-                    this.BindProperties();
+                    BindProperties();
                     // BUGBUG -- this is really bad casting a pointer to "int"...
-                    this.grid.SetSelectedObjects(1, ppUnk.ToInt32());
-                    this.grid.Refresh();
+                    Grid.SetSelectedObjects(1, ppUnk.ToInt32());
+                    Grid.Refresh();
                 }
                 finally
                 {
-                    if(ppUnk != IntPtr.Zero)
+                    if (ppUnk != IntPtr.Zero)
                     {
                         Marshal.FreeCoTaskMem(ppUnk);
                     }
-                    if(p != IntPtr.Zero)
+                    if (p != IntPtr.Zero)
                     {
                         Marshal.Release(p);
                     }
                 }
             }
         }
-        #endregion
-
-        #region IDisposable Members
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
 
         #endregion
-
-        private void Dispose(bool disposing)
-        {
-            if(!this.isDisposed)
-            {
-                lock(Mutex)
-                {
-                    if(disposing)
-                    {
-                        this.panel.Dispose();
-                    }
-
-                    this.isDisposed = true;
-                }
-            }
-        }
     }
 }

@@ -56,7 +56,7 @@ namespace VsTeXProject.VisualStudio.Project
     [CLSCompliant(false)]
     public class EnumDependencies : IVsEnumDependencies
     {
-        private List<IVsDependency> dependencyList = new List<IVsDependency>();
+        private readonly List<IVsDependency> dependencyList = new List<IVsDependency>();
 
         private uint nextIndex;
 
@@ -67,7 +67,7 @@ namespace VsTeXProject.VisualStudio.Project
                 throw new ArgumentNullException("dependencyList");
             }
 
-            foreach(IVsDependency dependency in dependencyList)
+            foreach (var dependency in dependencyList)
             {
                 this.dependencyList.Add(dependency);
             }
@@ -80,7 +80,7 @@ namespace VsTeXProject.VisualStudio.Project
                 throw new ArgumentNullException("dependencyList");
             }
 
-            foreach(IVsBuildDependency dependency in dependencyList)
+            foreach (var dependency in dependencyList)
             {
                 this.dependencyList.Add(dependency);
             }
@@ -88,8 +88,8 @@ namespace VsTeXProject.VisualStudio.Project
 
         public int Clone(out IVsEnumDependencies enumDependencies)
         {
-            enumDependencies = new EnumDependencies(this.dependencyList);
-            ErrorHandler.ThrowOnFailure(enumDependencies.Skip(this.nextIndex));
+            enumDependencies = new EnumDependencies(dependencyList);
+            ErrorHandler.ThrowOnFailure(enumDependencies.Skip(nextIndex));
             return VSConstants.S_OK;
         }
 
@@ -100,39 +100,38 @@ namespace VsTeXProject.VisualStudio.Project
             {
                 throw new ArgumentNullException("dependencies");
             }
-            
-            uint fetched = 0;
-            int count = this.dependencyList.Count;
 
-            while(this.nextIndex < count && elements > 0 && fetched < count)
+            uint fetched = 0;
+            var count = dependencyList.Count;
+
+            while (nextIndex < count && elements > 0 && fetched < count)
             {
-                dependencies[fetched] = this.dependencyList[(int)this.nextIndex];
-                this.nextIndex++;
+                dependencies[fetched] = dependencyList[(int) nextIndex];
+                nextIndex++;
                 fetched++;
                 elements--;
-
             }
 
             elementsFetched = fetched;
 
             // Did we get 'em all?
-            return (elements == 0 ? VSConstants.S_OK : VSConstants.S_FALSE);
+            return elements == 0 ? VSConstants.S_OK : VSConstants.S_FALSE;
         }
 
         public int Reset()
         {
-            this.nextIndex = 0;
+            nextIndex = 0;
             return VSConstants.S_OK;
         }
 
         public int Skip(uint elements)
         {
-            this.nextIndex += elements;
-            uint count = (uint)this.dependencyList.Count;
+            nextIndex += elements;
+            var count = (uint) dependencyList.Count;
 
-            if(this.nextIndex > count)
+            if (nextIndex > count)
             {
-                this.nextIndex = count;
+                nextIndex = count;
                 return VSConstants.S_FALSE;
             }
 

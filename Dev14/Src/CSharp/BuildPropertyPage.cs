@@ -55,7 +55,7 @@ using Microsoft.VisualStudio;
 namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
-    /// Enumerated list of the properties shown on the build property page
+    ///     Enumerated list of the properties shown on the build property page
     /// </summary>
     internal enum BuildPropertyPageTag
     {
@@ -63,60 +63,71 @@ namespace VsTeXProject.VisualStudio.Project
     }
 
     /// <summary>
-    /// Defines the properties on the build property page and the logic the binds the properties to project data (load and save)
+    ///     Defines the properties on the build property page and the logic the binds the properties to project data (load and
+    ///     save)
     /// </summary>
     [CLSCompliant(false), ComVisible(true), Guid("9B3DEA40-7F29-4a17-87A4-00EE08E8241E")]
     public class BuildPropertyPage : SettingsPage
     {
+        #region properties
+
+        [SRCategory(SR.BuildCaption)]
+        [LocDisplayName(SR.OutputPath)]
+        [SRDescription(SR.OutputPathDescription)]
+        public string OutputPath
+        {
+            get { return outputPath; }
+            set
+            {
+                outputPath = value;
+                IsDirty = true;
+            }
+        }
+
+        #endregion
+
         #region fields
+
         private string outputPath;
 
         public BuildPropertyPage()
         {
-            this.Name = SR.GetString(SR.BuildCaption, CultureInfo.CurrentUICulture);
+            Name = SR.GetString(SR.BuildCaption, CultureInfo.CurrentUICulture);
         }
-        #endregion
 
-        #region properties
-        [SRCategoryAttribute(SR.BuildCaption)]
-        [LocDisplayName(SR.OutputPath)]
-        [SRDescriptionAttribute(SR.OutputPathDescription)]
-        public string OutputPath
-        {
-            get { return this.outputPath; }
-            set { this.outputPath = value; this.IsDirty = true; }
-        }
         #endregion
 
         #region overridden methods
+
         public override string GetClassName()
         {
-            return this.GetType().FullName;
+            return GetType().FullName;
         }
 
         protected override void BindProperties()
         {
-            if(this.ProjectMgr == null)
+            if (ProjectMgr == null)
             {
                 Debug.Assert(false);
                 return;
             }
 
-            this.outputPath = this.GetConfigProperty(BuildPropertyPageTag.OutputPath.ToString());
+            outputPath = GetConfigProperty(BuildPropertyPageTag.OutputPath.ToString());
         }
 
         protected override int ApplyChanges()
         {
-            if(this.ProjectMgr == null)
+            if (ProjectMgr == null)
             {
                 Debug.Assert(false);
                 return VSConstants.E_INVALIDARG;
             }
 
-            this.SetConfigProperty(BuildPropertyPageTag.OutputPath.ToString(), this.outputPath);
-            this.IsDirty = false;
+            SetConfigProperty(BuildPropertyPageTag.OutputPath.ToString(), outputPath);
+            IsDirty = false;
             return VSConstants.S_OK;
         }
+
         #endregion
     }
 }

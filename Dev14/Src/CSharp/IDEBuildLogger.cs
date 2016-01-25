@@ -47,48 +47,98 @@ a particular purpose and non-infringement.
 ********************************************************************************************/
 
 using System;
-using System.Windows.Forms.Design;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text;
 using System.Threading;
+using System.Windows.Forms.Design;
 using System.Windows.Threading;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.Win32;
 using IOleServiceProvider = Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
 
 namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
-    /// This class implements an MSBuild logger that output events to VS outputwindow and tasklist.
+    ///     This class implements an MSBuild logger that output events to VS outputwindow and tasklist.
     /// </summary>
     [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "IDE")]
     internal class IDEBuildLogger : Logger
     {
+        #region ctors
+
+        /// <summary>
+        ///     Constructor.  Inititialize member data.
+        /// </summary>
+        public IDEBuildLogger(IVsOutputWindowPane output, TaskProvider taskProvider, IVsHierarchy hierarchy)
+        {
+            if (taskProvider == null)
+                throw new ArgumentNullException("taskProvider");
+            if (hierarchy == null)
+                throw new ArgumentNullException("hierarchy");
+
+            Trace.WriteLineIf(Thread.CurrentThread.GetApartmentState() != ApartmentState.STA,
+                "WARNING: IDEBuildLogger constructor running on the wrong thread.");
+
+            IOleServiceProvider site;
+            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(hierarchy.GetSite(out site));
+
+            this.taskProvider = taskProvider;
+            OutputWindowPane = output;
+            this.hierarchy = hierarchy;
+            ServiceProvider = new ServiceProvider(site);
+            dispatcher = Dispatcher.CurrentDispatcher;
+        }
+
+        #endregion
+
+        #region overridden methods
+
+        /// <summary>
+        ///     Overridden from the Logger class.
+        /// </summary>
+        public override void Initialize(IEventSource eventSource)
+        {
+            if (null == eventSource)
+            {
+                throw new ArgumentNullException("eventSource");
+            }
+
+            taskQueue = new ConcurrentQueue<Func<ErrorTask>>();
+            outputQueue = new ConcurrentQueue<string>();
+
+            eventSource.BuildStarted += BuildStartedHandler;
+            eventSource.BuildFinished += BuildFinishedHandler;
+            eventSource.ProjectStarted += ProjectStartedHandler;
+            eventSource.ProjectFinished += ProjectFinishedHandler;
+            eventSource.TargetStarted += TargetStartedHandler;
+            eventSource.TargetFinished += TargetFinishedHandler;
+            eventSource.TaskStarted += TaskStartedHandler;
+            eventSource.TaskFinished += TaskFinishedHandler;
+            eventSource.CustomEventRaised += CustomHandler;
+            eventSource.ErrorRaised += ErrorHandler;
+            eventSource.WarningRaised += WarningHandler;
+            eventSource.MessageRaised += MessageHandler;
+        }
+
+        #endregion
+
         #region fields
 
         // TODO: Remove these constants when we have a version that supports getting the verbosity using automation.
-        private string buildVerbosityRegistryRoot = @"Software\Microsoft\VisualStudio\10.0";
         private const string buildVerbosityRegistrySubKey = @"General";
         private const string buildVerbosityRegistryKey = "MSBuildLoggerVerbosity";
 
         private int currentIndent;
-        private IVsOutputWindowPane outputWindowPane;
-        private string errorString = SR.GetString(SR.Error, CultureInfo.CurrentUICulture);
-        private string warningString = SR.GetString(SR.Warning, CultureInfo.CurrentUICulture);
-        private TaskProvider taskProvider;
-        private IVsHierarchy hierarchy;
-        private IServiceProvider serviceProvider;
-        private Dispatcher dispatcher;
-        private bool haveCachedVerbosity = false;
+        private readonly TaskProvider taskProvider;
+        private readonly IVsHierarchy hierarchy;
+        private readonly Dispatcher dispatcher;
+        private bool haveCachedVerbosity;
 
         // Queues to manage Tasks and Error output plus message logging
         private ConcurrentQueue<Func<ErrorTask>> taskQueue;
@@ -98,120 +148,41 @@ namespace VsTeXProject.VisualStudio.Project
 
         #region properties
 
-        public IServiceProvider ServiceProvider
-        {
-            get { return this.serviceProvider; }
-        }
+        public IServiceProvider ServiceProvider { get; }
 
-        public string WarningString
-        {
-            get { return this.warningString; }
-            set { this.warningString = value; }
-        }
+        public string WarningString { get; set; } = SR.GetString(SR.Warning, CultureInfo.CurrentUICulture);
 
-        public string ErrorString
-        {
-            get { return this.errorString; }
-            set { this.errorString = value; }
-        }
+        public string ErrorString { get; set; } = SR.GetString(SR.Error, CultureInfo.CurrentUICulture);
 
         /// <summary>
-        /// When the build is not a "design time" (background or secondary) build this is True
+        ///     When the build is not a "design time" (background or secondary) build this is True
         /// </summary>
         /// <remarks>
-        /// The only known way to detect an interactive build is to check this.outputWindowPane for null.
+        ///     The only known way to detect an interactive build is to check this.outputWindowPane for null.
         /// </remarks>
         protected bool InteractiveBuild
         {
-            get { return this.outputWindowPane != null; }
+            get { return OutputWindowPane != null; }
         }
 
         /// <summary>
-        /// When building from within VS, setting this will
-        /// enable the logger to retrive the verbosity from
-        /// the correct registry hive.
+        ///     When building from within VS, setting this will
+        ///     enable the logger to retrive the verbosity from
+        ///     the correct registry hive.
         /// </summary>
-        internal string BuildVerbosityRegistryRoot
-        {
-            get { return this.buildVerbosityRegistryRoot; }
-            set 
-            {
-                this.buildVerbosityRegistryRoot = value;
-            }
-        }
+        internal string BuildVerbosityRegistryRoot { get; set; } = @"Software\Microsoft\VisualStudio\10.0";
 
         /// <summary>
-        /// Set to null to avoid writing to the output window
+        ///     Set to null to avoid writing to the output window
         /// </summary>
-        internal IVsOutputWindowPane OutputWindowPane
-        {
-            get { return this.outputWindowPane; }
-            set { this.outputWindowPane = value; }
-        }
-
-        #endregion
-
-        #region ctors
-
-        /// <summary>
-        /// Constructor.  Inititialize member data.
-        /// </summary>
-        public IDEBuildLogger(IVsOutputWindowPane output, TaskProvider taskProvider, IVsHierarchy hierarchy)
-        {
-            if (taskProvider == null)
-                throw new ArgumentNullException("taskProvider");
-            if (hierarchy == null)
-                throw new ArgumentNullException("hierarchy");
-
-            Trace.WriteLineIf(Thread.CurrentThread.GetApartmentState() != ApartmentState.STA, "WARNING: IDEBuildLogger constructor running on the wrong thread.");
-
-            IOleServiceProvider site;
-            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(hierarchy.GetSite(out site));
-
-            this.taskProvider = taskProvider;
-            this.outputWindowPane = output;
-            this.hierarchy = hierarchy;
-            this.serviceProvider = new ServiceProvider(site);
-            this.dispatcher = Dispatcher.CurrentDispatcher;
-        }
-
-        #endregion
-
-        #region overridden methods
-
-        /// <summary>
-        /// Overridden from the Logger class.
-        /// </summary>
-        public override void Initialize(IEventSource eventSource)
-        {
-            if (null == eventSource)
-            {
-                throw new ArgumentNullException("eventSource");
-            }
-
-            this.taskQueue = new ConcurrentQueue<Func<ErrorTask>>();
-            this.outputQueue = new ConcurrentQueue<string>();
-
-            eventSource.BuildStarted += new BuildStartedEventHandler(BuildStartedHandler);
-            eventSource.BuildFinished += new BuildFinishedEventHandler(BuildFinishedHandler);
-            eventSource.ProjectStarted += new ProjectStartedEventHandler(ProjectStartedHandler);
-            eventSource.ProjectFinished += new ProjectFinishedEventHandler(ProjectFinishedHandler);
-            eventSource.TargetStarted += new TargetStartedEventHandler(TargetStartedHandler);
-            eventSource.TargetFinished += new TargetFinishedEventHandler(TargetFinishedHandler);
-            eventSource.TaskStarted += new TaskStartedEventHandler(TaskStartedHandler);
-            eventSource.TaskFinished += new TaskFinishedEventHandler(TaskFinishedHandler);
-            eventSource.CustomEventRaised += new CustomBuildEventHandler(CustomHandler);
-            eventSource.ErrorRaised += new BuildErrorEventHandler(ErrorHandler);
-            eventSource.WarningRaised += new BuildWarningEventHandler(WarningHandler);
-            eventSource.MessageRaised += new BuildMessageEventHandler(MessageHandler);
-        }
+        internal IVsOutputWindowPane OutputWindowPane { get; set; }
 
         #endregion
 
         #region event delegates
 
         /// <summary>
-        /// This is the delegate for BuildStartedHandler events.
+        ///     This is the delegate for BuildStartedHandler events.
         /// </summary>
         protected virtual void BuildStartedHandler(object sender, BuildStartedEventArgs buildEvent)
         {
@@ -224,14 +195,14 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// This is the delegate for BuildFinishedHandler events.
+        ///     This is the delegate for BuildFinishedHandler events.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="buildEvent"></param>
         protected virtual void BuildFinishedHandler(object sender, BuildFinishedEventArgs buildEvent)
         {
             // NOTE: This may run on a background thread!
-            MessageImportance importance = buildEvent.Succeeded ? MessageImportance.Low : MessageImportance.High;
+            var importance = buildEvent.Succeeded ? MessageImportance.Low : MessageImportance.High;
             QueueOutputText(importance, Environment.NewLine);
             QueueOutputEvent(importance, buildEvent);
 
@@ -241,7 +212,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// This is the delegate for ProjectStartedHandler events.
+        ///     This is the delegate for ProjectStartedHandler events.
         /// </summary>
         protected virtual void ProjectStartedHandler(object sender, ProjectStartedEventArgs buildEvent)
         {
@@ -250,7 +221,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// This is the delegate for ProjectFinishedHandler events.
+        ///     This is the delegate for ProjectFinishedHandler events.
         /// </summary>
         protected virtual void ProjectFinishedHandler(object sender, ProjectFinishedEventArgs buildEvent)
         {
@@ -259,7 +230,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// This is the delegate for TargetStartedHandler events.
+        ///     This is the delegate for TargetStartedHandler events.
         /// </summary>
         protected virtual void TargetStartedHandler(object sender, TargetStartedEventArgs buildEvent)
         {
@@ -269,7 +240,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// This is the delegate for TargetFinishedHandler events.
+        ///     This is the delegate for TargetFinishedHandler events.
         /// </summary>
         protected virtual void TargetFinishedHandler(object sender, TargetFinishedEventArgs buildEvent)
         {
@@ -279,7 +250,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// This is the delegate for TaskStartedHandler events.
+        ///     This is the delegate for TaskStartedHandler events.
         /// </summary>
         protected virtual void TaskStartedHandler(object sender, TaskStartedEventArgs buildEvent)
         {
@@ -289,7 +260,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// This is the delegate for TaskFinishedHandler events.
+        ///     This is the delegate for TaskFinishedHandler events.
         /// </summary>
         protected virtual void TaskFinishedHandler(object sender, TaskFinishedEventArgs buildEvent)
         {
@@ -299,7 +270,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// This is the delegate for CustomHandler events.
+        ///     This is the delegate for CustomHandler events.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="buildEvent"></param>
@@ -310,28 +281,31 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// This is the delegate for error events.
+        ///     This is the delegate for error events.
         /// </summary>
         protected virtual void ErrorHandler(object sender, BuildErrorEventArgs errorEvent)
         {
             // NOTE: This may run on a background thread!
-            QueueOutputText(GetFormattedErrorMessage(errorEvent.File, errorEvent.LineNumber, errorEvent.ColumnNumber, false, errorEvent.Code, errorEvent.Message));
+            QueueOutputText(GetFormattedErrorMessage(errorEvent.File, errorEvent.LineNumber, errorEvent.ColumnNumber,
+                false, errorEvent.Code, errorEvent.Message));
             QueueTaskEvent(errorEvent);
         }
 
         /// <summary>
-        /// This is the delegate for warning events.
+        ///     This is the delegate for warning events.
         /// </summary>
         protected virtual void WarningHandler(object sender, BuildWarningEventArgs warningEvent)
         {
             // NOTE: This may run on a background thread!
-            QueueOutputText(MessageImportance.High, GetFormattedErrorMessage(warningEvent.File, warningEvent.LineNumber, warningEvent.ColumnNumber, true, warningEvent.Code, warningEvent.Message));
+            QueueOutputText(MessageImportance.High,
+                GetFormattedErrorMessage(warningEvent.File, warningEvent.LineNumber, warningEvent.ColumnNumber, true,
+                    warningEvent.Code, warningEvent.Message));
             QueueTaskEvent(warningEvent);
         }
 
         /// <summary>
-        /// This is the delegate for Message event types
-        /// </summary>		
+        ///     This is the delegate for Message event types
+        /// </summary>
         protected virtual void MessageHandler(object sender, BuildMessageEventArgs messageEvent)
         {
             // NOTE: This may run on a background thread!
@@ -347,10 +321,10 @@ namespace VsTeXProject.VisualStudio.Project
             // NOTE: This may run on a background thread!
             if (LogAtImportance(importance) && !string.IsNullOrEmpty(buildEvent.Message))
             {
-                StringBuilder message = new StringBuilder(this.currentIndent + buildEvent.Message.Length);
-                if (this.currentIndent > 0)
+                var message = new StringBuilder(currentIndent + buildEvent.Message.Length);
+                if (currentIndent > 0)
                 {
-                    message.Append('\t', this.currentIndent);
+                    message.Append('\t', currentIndent);
                 }
                 message.AppendLine(buildEvent.Message);
 
@@ -370,15 +344,15 @@ namespace VsTeXProject.VisualStudio.Project
         protected void QueueOutputText(string text)
         {
             // NOTE: This may run on a background thread!
-            if (this.OutputWindowPane != null)
+            if (OutputWindowPane != null)
             {
                 // Enqueue the output text
-                this.outputQueue.Enqueue(text);
+                outputQueue.Enqueue(text);
 
                 // We want to interactively report the output. But we dont want to dispatch
                 // more than one at a time, otherwise we might overflow the main thread's
                 // message queue. So, we only report the output if the queue was empty.
-                if (this.outputQueue.Count == 1)
+                if (outputQueue.Count == 1)
                 {
                     ReportQueuedOutput();
                 }
@@ -388,28 +362,28 @@ namespace VsTeXProject.VisualStudio.Project
         private void IndentOutput()
         {
             // NOTE: This may run on a background thread!
-            this.currentIndent++;
+            currentIndent++;
         }
 
         private void UnindentOutput()
         {
             // NOTE: This may run on a background thread!
-            this.currentIndent--;
+            currentIndent--;
         }
 
         private void ReportQueuedOutput()
         {
             // NOTE: This may run on a background thread!
             // We need to output this on the main thread. We must use BeginInvoke because the main thread may not be pumping events yet.
-            BeginInvokeWithErrorMessage(this.serviceProvider, this.dispatcher, () =>
+            BeginInvokeWithErrorMessage(ServiceProvider, dispatcher, () =>
             {
-                if (this.OutputWindowPane != null)
+                if (OutputWindowPane != null)
                 {
                     string outputString;
 
-                    while (this.outputQueue.TryDequeue(out outputString))
+                    while (outputQueue.TryDequeue(out outputString))
                     {
-                        Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(this.OutputWindowPane.OutputString(outputString));
+                        Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(OutputWindowPane.OutputString(outputString));
                     }
                 }
             });
@@ -418,7 +392,7 @@ namespace VsTeXProject.VisualStudio.Project
         private void ClearQueuedOutput()
         {
             // NOTE: This may run on a background thread!
-            this.outputQueue = new ConcurrentQueue<string>();
+            outputQueue = new ConcurrentQueue<string>();
         }
 
         #endregion output queue
@@ -427,13 +401,13 @@ namespace VsTeXProject.VisualStudio.Project
 
         protected void QueueTaskEvent(BuildEventArgs errorEvent)
         {
-            this.taskQueue.Enqueue(() =>
+            taskQueue.Enqueue(() =>
             {
-                ErrorTask task = new ErrorTask();
+                var task = new ErrorTask();
 
                 if (errorEvent is BuildErrorEventArgs)
                 {
-                    BuildErrorEventArgs errorArgs = (BuildErrorEventArgs)errorEvent;
+                    var errorArgs = (BuildErrorEventArgs) errorEvent;
                     task.Document = errorArgs.File;
                     task.ErrorCategory = TaskErrorCategory.Error;
                     task.Line = errorArgs.LineNumber - 1; // The task list does +1 before showing this number.
@@ -442,7 +416,7 @@ namespace VsTeXProject.VisualStudio.Project
                 }
                 else if (errorEvent is BuildWarningEventArgs)
                 {
-                    BuildWarningEventArgs warningArgs = (BuildWarningEventArgs)errorEvent;
+                    var warningArgs = (BuildWarningEventArgs) errorEvent;
                     task.Document = warningArgs.File;
                     task.ErrorCategory = TaskErrorCategory.Warning;
                     task.Line = warningArgs.LineNumber - 1; // The task list does +1 before showing this number.
@@ -465,25 +439,25 @@ namespace VsTeXProject.VisualStudio.Project
         {
             // NOTE: This may run on a background thread!
             // We need to output this on the main thread. We must use BeginInvoke because the main thread may not be pumping events yet.
-            BeginInvokeWithErrorMessage(this.serviceProvider, this.dispatcher, () =>
+            BeginInvokeWithErrorMessage(ServiceProvider, dispatcher, () =>
             {
-                this.taskProvider.SuspendRefresh();
+                taskProvider.SuspendRefresh();
                 try
                 {
                     Func<ErrorTask> taskFunc;
 
-                    while (this.taskQueue.TryDequeue(out taskFunc))
+                    while (taskQueue.TryDequeue(out taskFunc))
                     {
                         // Create the error task
-                        ErrorTask task = taskFunc();
+                        var task = taskFunc();
 
                         // Log the task
-                        this.taskProvider.Tasks.Add(task);
+                        taskProvider.Tasks.Add(task);
                     }
                 }
                 finally
                 {
-                    this.taskProvider.ResumeRefresh();
+                    taskProvider.ResumeRefresh();
                 }
             });
         }
@@ -491,15 +465,12 @@ namespace VsTeXProject.VisualStudio.Project
         private void ClearQueuedTasks()
         {
             // NOTE: This may run on a background thread!
-            this.taskQueue = new ConcurrentQueue<Func<ErrorTask>>();
+            taskQueue = new ConcurrentQueue<Func<ErrorTask>>();
 
-            if (this.InteractiveBuild)
+            if (InteractiveBuild)
             {
                 // We need to clear this on the main thread. We must use BeginInvoke because the main thread may not be pumping events yet.
-                BeginInvokeWithErrorMessage(this.serviceProvider, this.dispatcher, () =>
-                {
-                    this.taskProvider.Tasks.Clear();
-                });
+                BeginInvokeWithErrorMessage(ServiceProvider, dispatcher, () => { taskProvider.Tasks.Clear(); });
             }
         }
 
@@ -508,28 +479,28 @@ namespace VsTeXProject.VisualStudio.Project
         #region helpers
 
         /// <summary>
-        /// This method takes a MessageImportance and returns true if messages
-        /// at importance i should be loggeed.  Otherwise return false.
+        ///     This method takes a MessageImportance and returns true if messages
+        ///     at importance i should be loggeed.  Otherwise return false.
         /// </summary>
         private bool LogAtImportance(MessageImportance importance)
         {
             // If importance is too low for current settings, ignore the event
-            bool logIt = false;
+            var logIt = false;
 
-            this.SetVerbosity();
+            SetVerbosity();
 
-            switch (this.Verbosity)
+            switch (Verbosity)
             {
                 case LoggerVerbosity.Quiet:
                     logIt = false;
                     break;
                 case LoggerVerbosity.Minimal:
-                    logIt = (importance == MessageImportance.High);
+                    logIt = importance == MessageImportance.High;
                     break;
                 case LoggerVerbosity.Normal:
                 // Falling through...
                 case LoggerVerbosity.Detailed:
-                    logIt = (importance != MessageImportance.Low);
+                    logIt = importance != MessageImportance.Low;
                     break;
                 case LoggerVerbosity.Diagnostic:
                     logIt = true;
@@ -543,7 +514,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Format error messages for the task list
+        ///     Format error messages for the task list
         /// </summary>
         private string GetFormattedErrorMessage(
             string fileName,
@@ -553,9 +524,9 @@ namespace VsTeXProject.VisualStudio.Project
             string errorNumber,
             string errorText)
         {
-            string errorCode = isWarning ? this.WarningString : this.ErrorString;
+            var errorCode = isWarning ? WarningString : ErrorString;
 
-            StringBuilder message = new StringBuilder();
+            var message = new StringBuilder();
             if (!string.IsNullOrEmpty(fileName))
             {
                 message.AppendFormat(CultureInfo.CurrentCulture, "{0}({1},{2}):", fileName, line, column);
@@ -567,36 +538,37 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Sets the verbosity level.
+        ///     Sets the verbosity level.
         /// </summary>
         private void SetVerbosity()
         {
             // TODO: This should be replaced when we have a version that supports automation.
-            if (!this.haveCachedVerbosity)
+            if (!haveCachedVerbosity)
             {
-                string verbosityKey = String.Format(CultureInfo.InvariantCulture, @"{0}\{1}", BuildVerbosityRegistryRoot, buildVerbosityRegistrySubKey);
-                using (RegistryKey subKey = Registry.CurrentUser.OpenSubKey(verbosityKey))
+                var verbosityKey = string.Format(CultureInfo.InvariantCulture, @"{0}\{1}", BuildVerbosityRegistryRoot,
+                    buildVerbosityRegistrySubKey);
+                using (var subKey = Registry.CurrentUser.OpenSubKey(verbosityKey))
                 {
                     if (subKey != null)
                     {
-                        object valueAsObject = subKey.GetValue(buildVerbosityRegistryKey);
+                        var valueAsObject = subKey.GetValue(buildVerbosityRegistryKey);
                         if (valueAsObject != null)
                         {
-                            this.Verbosity = (LoggerVerbosity)((int)valueAsObject);
+                            Verbosity = (LoggerVerbosity) (int) valueAsObject;
                         }
                     }
                 }
 
-                this.haveCachedVerbosity = true;
+                haveCachedVerbosity = true;
             }
         }
 
         /// <summary>
-        /// Clear the cached verbosity, so that it will be re-evaluated from the build verbosity registry key.
+        ///     Clear the cached verbosity, so that it will be re-evaluated from the build verbosity registry key.
         /// </summary>
         private void ClearCachedVerbosity()
         {
-            this.haveCachedVerbosity = false;
+            haveCachedVerbosity = false;
         }
 
         #endregion helpers
@@ -604,18 +576,19 @@ namespace VsTeXProject.VisualStudio.Project
         #region exception handling helpers
 
         /// <summary>
-        /// Call Dispatcher.BeginInvoke, showing an error message if there was a non-critical exception.
+        ///     Call Dispatcher.BeginInvoke, showing an error message if there was a non-critical exception.
         /// </summary>
         /// <param name="serviceProvider">service provider</param>
         /// <param name="dispatcher">dispatcher</param>
         /// <param name="action">action to invoke</param>
-        private static void BeginInvokeWithErrorMessage(IServiceProvider serviceProvider, Dispatcher dispatcher, Action action)
+        private static void BeginInvokeWithErrorMessage(IServiceProvider serviceProvider, Dispatcher dispatcher,
+            Action action)
         {
             dispatcher.BeginInvoke(new Action(() => CallWithErrorMessage(serviceProvider, action)));
         }
 
         /// <summary>
-        /// Show error message if exception is caught when invoking a method
+        ///     Show error message if exception is caught when invoking a method
         /// </summary>
         /// <param name="serviceProvider">service provider</param>
         /// <param name="action">action to invoke</param>
@@ -637,13 +610,13 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Show error window about the exception
+        ///     Show error window about the exception
         /// </summary>
         /// <param name="serviceProvider">service provider</param>
         /// <param name="exception">exception</param>
         private static void ShowErrorMessage(IServiceProvider serviceProvider, Exception exception)
         {
-            IUIService UIservice = (IUIService)serviceProvider.GetService(typeof(IUIService));
+            var UIservice = (IUIService) serviceProvider.GetService(typeof (IUIService));
             if (UIservice != null && exception != null)
             {
                 UIservice.ShowError(exception);

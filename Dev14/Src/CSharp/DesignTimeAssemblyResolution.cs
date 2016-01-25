@@ -45,35 +45,40 @@ local laws, the contributors exclude the implied warranties of merchantability, 
 a particular purpose and non-infringement.
 
 ********************************************************************************************/
+
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
-using Microsoft.Build.Framework;
-using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.Build.Utilities;
 using Microsoft.Build.Execution;
-using System.IO;
-using System.Globalization;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Tasks;
+using Microsoft.Build.Utilities;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace VsTeXProject.VisualStudio.Project
 {
     public class DesignTimeAssemblyResolution
     {
         private const string OriginalItemSpec = "originalItemSpec";
-    
+
         private const string FoundAssemblyVersion = "Version";
-        
+
         private const string HighestVersionInRedistList = "HighestVersionInRedist";
-        
+
         private const string OutOfRangeDependencies = "OutOfRangeDependencies";
 
         private RarInputs rarInputs;
 
         public bool EnableLogging { get; set; }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "GetFrameworkPaths")]
+        [SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly",
+            MessageId = "GetFrameworkPaths")]
         public virtual void Initialize(ProjectNode projectNode)
         {
             if (projectNode == null)
@@ -86,7 +91,7 @@ namespace VsTeXProject.VisualStudio.Project
                 throw new InvalidOperationException("Build of GetFrameworkPaths failed.");
             }
 
-            this.rarInputs = new RarInputs(projectNode.CurrentConfig);
+            rarInputs = new RarInputs(projectNode.CurrentConfig);
         }
 
         public virtual VsResolvedAssemblyPath[] Resolve(IEnumerable<string> assemblies)
@@ -98,7 +103,7 @@ namespace VsTeXProject.VisualStudio.Project
 
             // Resolve references WITHOUT invoking MSBuild to avoid re-entrancy problems.
             const bool projectDtar = true;
-            var rar = new Microsoft.Build.Tasks.ResolveAssemblyReference();
+            var rar = new ResolveAssemblyReference();
             var engine = new MockEngine(EnableLogging);
             rar.BuildEngine = engine;
 
@@ -121,7 +126,7 @@ namespace VsTeXProject.VisualStudio.Project
             rar.IgnoreDefaultInstalledAssemblySubsetTables = rarInputs.IgnoreDefaultInstalledAssemblySubsetTables;
             rar.ProfileName = rarInputs.ProfileName;
 
-            rar.Silent = !this.EnableLogging;
+            rar.Silent = !EnableLogging;
             rar.FindDependencies = true;
             rar.AutoUnify = false;
             rar.FindSatellites = false;
@@ -147,7 +152,7 @@ namespace VsTeXProject.VisualStudio.Project
                 results = FilterResults(rar.ResolvedFiles).Select(pair => new VsResolvedAssemblyPath
                 {
                     bstrOrigAssemblySpec = pair.Key,
-                    bstrResolvedAssemblyPath = pair.Value,
+                    bstrResolvedAssemblyPath = pair.Value
                 });
             }
             catch (Exception ex)
@@ -162,7 +167,7 @@ namespace VsTeXProject.VisualStudio.Project
             }
             finally
             {
-                if (this.EnableLogging)
+                if (EnableLogging)
                 {
                     WriteLogFile(engine, projectDtar, assemblies);
                 }
@@ -173,21 +178,21 @@ namespace VsTeXProject.VisualStudio.Project
 
         private static IEnumerable<KeyValuePair<string, string>> FilterResults(IEnumerable<ITaskItem> resolvedFiles)
         {
-            foreach (ITaskItem resolvedFile in resolvedFiles)
+            foreach (var resolvedFile in resolvedFiles)
             {
-                bool bAddResolvedAssemblyToResultList = true;
+                var bAddResolvedAssemblyToResultList = true;
 
                 // excludeVersionWarningsFromResult
-                string foundAssemblyVersion = resolvedFile.GetMetadata(FoundAssemblyVersion);
-                string highestVersionInRedist = resolvedFile.GetMetadata(HighestVersionInRedistList);
+                var foundAssemblyVersion = resolvedFile.GetMetadata(FoundAssemblyVersion);
+                var highestVersionInRedist = resolvedFile.GetMetadata(HighestVersionInRedistList);
 
                 Version asmVersion = null;
-                bool parsedAsmVersion = Version.TryParse(foundAssemblyVersion, out asmVersion);
+                var parsedAsmVersion = Version.TryParse(foundAssemblyVersion, out asmVersion);
 
                 Version redistVersion = null;
-                bool parsedRedistVersion = Version.TryParse(highestVersionInRedist, out redistVersion);
+                var parsedRedistVersion = Version.TryParse(highestVersionInRedist, out redistVersion);
 
-                if ((parsedAsmVersion && parsedRedistVersion) && asmVersion > redistVersion)
+                if (parsedAsmVersion && parsedRedistVersion && asmVersion > redistVersion)
                 {
                     // if the version of the assembly is greater than the highest version - for that assembly - found in 
                     // the chained(possibly) redist lists; then the assembly does not belong to the target framework 
@@ -195,8 +200,8 @@ namespace VsTeXProject.VisualStudio.Project
                 }
 
                 // check outOfRangeDependencies
-                string outOfRangeDependencies = resolvedFile.GetMetadata(OutOfRangeDependencies);
-                if (!String.IsNullOrEmpty(outOfRangeDependencies))
+                var outOfRangeDependencies = resolvedFile.GetMetadata(OutOfRangeDependencies);
+                if (!string.IsNullOrEmpty(outOfRangeDependencies))
                 {
                     // This metadata is a semi-colon delimited list of dependent assembly names which target
                     // a higher framework. If this metadata is NOT EMPTY then
@@ -208,51 +213,57 @@ namespace VsTeXProject.VisualStudio.Project
 
                 if (bAddResolvedAssemblyToResultList)
                 {
-                    yield return new KeyValuePair<string, string>(resolvedFile.GetMetadata(OriginalItemSpec), resolvedFile.ItemSpec);
+                    yield return
+                        new KeyValuePair<string, string>(resolvedFile.GetMetadata(OriginalItemSpec),
+                            resolvedFile.ItemSpec);
                 }
             }
         }
 
         private static void WriteLogFile(MockEngine engine, bool projectDtar, IEnumerable<string> assemblies)
         {
-            string logFilePrefix = projectDtar ? "P" : "G";
+            var logFilePrefix = projectDtar ? "P" : "G";
 
-            string logFilePath = Path.Combine(Path.GetTempPath(), logFilePrefix + @"Dtar" + (Guid.NewGuid()).ToString("N", CultureInfo.InvariantCulture) + ".log");
+            var logFilePath = Path.Combine(Path.GetTempPath(),
+                logFilePrefix + @"Dtar" + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture) + ".log");
 
-            StringBuilder inputs = new StringBuilder();
+            var inputs = new StringBuilder();
 
-            Array.ForEach<string>(assemblies.ToArray(), assembly => { inputs.Append(assembly); inputs.Append(";"); inputs.Append("\n"); });
+            Array.ForEach(assemblies.ToArray(), assembly =>
+            {
+                inputs.Append(assembly);
+                inputs.Append(";");
+                inputs.Append("\n");
+            });
 
-            string logAssemblies = "Inputs: \n" + inputs.ToString() + "\n\n";
+            var logAssemblies = "Inputs: \n" + inputs + "\n\n";
 
-            string finalLog = logAssemblies + engine.Log;
+            var finalLog = logAssemblies + engine.Log;
 
-            string[] finalLogLines = finalLog.Split(new char[] { '\n' });
+            var finalLogLines = finalLog.Split('\n');
 
             File.WriteAllLines(logFilePath, finalLogLines);
         }
-        
+
         /// <summary>
-        /// Engine required by RAR, primarily for collecting logs
+        ///     Engine required by RAR, primarily for collecting logs
         /// </summary>
         private class MockEngine : IBuildEngine
         {
-            private int messages = 0;
-            private int warnings = 0;
-            private int errors = 0;
-            private StringBuilder log = new StringBuilder();
-            private readonly bool enableLog = false;
+            private readonly bool enableLog;
+            private int errors;
+            private readonly StringBuilder log = new StringBuilder();
+            private int messages;
+            private int warnings;
 
             internal MockEngine(bool enableLog)
             {
                 this.enableLog = enableLog;
             }
 
-            public void RecordRARExecutionException(Exception ex)
+            internal string Log
             {
-                if (!enableLog) return;
-
-                log.Append(String.Format(CultureInfo.InvariantCulture, "{0}", ex.ToString()));
+                get { return log.ToString(); }
             }
 
             public void LogErrorEvent(BuildErrorEventArgs eventArgs)
@@ -266,7 +277,8 @@ namespace VsTeXProject.VisualStudio.Project
 
                 if (eventArgs.File != null && eventArgs.File.Length > 0)
                 {
-                    log.Append(String.Format(CultureInfo.InvariantCulture, "{0}({1},{2}): ", eventArgs.File, eventArgs.LineNumber, eventArgs.ColumnNumber));
+                    log.Append(string.Format(CultureInfo.InvariantCulture, "{0}({1},{2}): ", eventArgs.File,
+                        eventArgs.LineNumber, eventArgs.ColumnNumber));
                 }
 
                 log.Append("ERROR ");
@@ -288,7 +300,8 @@ namespace VsTeXProject.VisualStudio.Project
 
                 if (eventArgs.File != null && eventArgs.File.Length > 0)
                 {
-                    log.Append(String.Format(CultureInfo.InvariantCulture, "{0}({1},{2}): ", eventArgs.File, eventArgs.LineNumber, eventArgs.ColumnNumber));
+                    log.Append(string.Format(CultureInfo.InvariantCulture, "{0}({1},{2}): ", eventArgs.File,
+                        eventArgs.LineNumber, eventArgs.ColumnNumber));
                 }
 
                 log.Append("WARNING ");
@@ -332,7 +345,7 @@ namespace VsTeXProject.VisualStudio.Project
 
             public string ProjectFileOfTaskNode
             {
-                get { return String.Empty; }
+                get { return string.Empty; }
             }
 
             public int LineNumberOfTaskNode
@@ -345,75 +358,28 @@ namespace VsTeXProject.VisualStudio.Project
                 get { return 0; }
             }
 
-            internal string Log
-            {
-                get { return log.ToString(); }
-            }
-
-            public bool BuildProjectFile(string projectFileName, string[] targetNames, System.Collections.IDictionary globalProperties, System.Collections.IDictionary targetOutputs)
+            public bool BuildProjectFile(string projectFileName, string[] targetNames, IDictionary globalProperties,
+                IDictionary targetOutputs)
             {
                 throw new NotImplementedException();
+            }
+
+            public void RecordRARExecutionException(Exception ex)
+            {
+                if (!enableLog) return;
+
+                log.Append(string.Format(CultureInfo.InvariantCulture, "{0}", ex));
             }
         }
 
         /// <summary>
-        /// Accesssor for RAR related properties in the projectInstance.
-        /// See ResolveAssemblyReferennce task msdn docs for member descriptions
+        ///     Accesssor for RAR related properties in the projectInstance.
+        ///     See ResolveAssemblyReferennce task msdn docs for member descriptions
         /// </summary>
         private class RarInputs
         {
-            #region private fields
-
-            // RAR related property/item names etc
-            private const string TargetFrameworkDirectory = "TargetFrameworkDirectory";
-            private const string RegistrySearchPathFormat = "Registry:{0},{1},{2}{3}";
-            private const string FrameworkRegistryBase = "FrameworkRegistryBase";
-            private const string TargetFrameworkVersionName = "TargetFrameworkVersion";
-            private const string AssemblyFoldersSuffix = "AssemblyFoldersSuffix";
-            private const string AssemblyFoldersExConditions = "AssemblyFoldersExConditions";
-            private const string AllowedReferenceAssemblyFileExtensions = "AllowedReferenceAssemblyFileExtensions";
-            private const string ProcessorArchitecture = "ProcessorArchitecture";
-            private const string TargetFrameworkMonikerName = "TargetFrameworkMoniker";
-            private const string TargetFrameworkMonikerDisplayNameName = "TargetFrameworkMonikerDisplayName";
-            private const string TargetedRuntimeVersionName = "TargetedRuntimeVersion";
-            private const string FullFrameworkReferenceAssemblyPaths = "_FullFrameworkReferenceAssemblyPaths";
-            private const string TargetFrameworkProfile = "TargetFrameworkProfile";
-
-            private const string ProjectDesignTimeAssemblyResolutionSearchPaths = "ProjectDesignTimeAssemblyResolutionSearchPaths";
-            private const string Content = "Content";
-            private const string None = "None";
-            private const string RARResolvedReferencePath = "ReferencePath";
-            private const string IntermediateOutputPath = "IntermediateOutputPath";
-            private const string InstalledAssemblySubsetTablesName = "InstalledAssemblySubsetTables";
-            private const string IgnoreInstalledAssemblySubsetTables = "IgnoreInstalledAssemblySubsetTables";
-            private const string ReferenceInstalledAssemblySubsets = "_ReferenceInstalledAssemblySubsets";
-            private const string FullReferenceAssemblyNames = "FullReferenceAssemblyNames";
-            private const string LatestTargetFrameworkDirectoriesName = "LatestTargetFrameworkDirectories";
-            private const string FullFrameworkAssemblyTablesName = "FullFrameworkAssemblyTables";
-            private const string MSBuildProjectDirectory = "MSBuildProjectDirectory";
-
-            #endregion //private fields
-
-            public string[] TargetFrameworkDirectories { get; private set; }
-            public string[] AllowedAssemblyExtensions { get; private set; }
-            public string TargetProcessorArchitecture { get; private set; }
-            public string TargetFrameworkVersion { get; private set; }
-            public string TargetFrameworkMoniker { get; private set; }
-            public string TargetFrameworkMonikerDisplayName { get; private set; }
-            public string TargetedRuntimeVersion { get; private set; }
-            public string[] FullFrameworkFolders { get; private set; }
-            public string ProfileName { get; private set; }
-            public string[] PdtarSearchPaths { get; private set; }
-            public string[] CandidateAssemblyFiles { get; private set; }
-            public string StateFile { get; private set; }
-            public ITaskItem[] InstalledAssemblySubsetTables { get; private set; }
-            public bool IgnoreDefaultInstalledAssemblySubsetTables { get; private set; }
-            public string[] TargetFrameworkSubsets { get; private set; }
-            public string[] FullTargetFrameworkSubsetNames { get; private set; }
-            public ITaskItem[] FullFrameworkAssemblyTables { get; private set; }
-            public string[] LatestTargetFrameworkDirectories { get; private set; }
-
             #region constructors
+
             public RarInputs(ProjectInstance projectInstance)
             {
                 // Run through all of the entries we want to extract from the project instance before we discard it to save memory
@@ -428,7 +394,8 @@ namespace VsTeXProject.VisualStudio.Project
                 LatestTargetFrameworkDirectories = GetLatestTargetFrameworkDirectories(projectInstance);
                 FullTargetFrameworkSubsetNames = GetFullTargetFrameworkSubsetNames(projectInstance);
                 FullFrameworkAssemblyTables = GetFullFrameworkAssemblyTables(projectInstance);
-                IgnoreDefaultInstalledAssemblySubsetTables = GetIgnoreDefaultInstalledAssemblySubsetTables(projectInstance);
+                IgnoreDefaultInstalledAssemblySubsetTables =
+                    GetIgnoreDefaultInstalledAssemblySubsetTables(projectInstance);
                 ProfileName = GetProfileName(projectInstance);
 
                 /*               
@@ -447,7 +414,81 @@ namespace VsTeXProject.VisualStudio.Project
                 InstalledAssemblySubsetTables = GetInstalledAssemblySubsetTables(projectInstance);
                 TargetFrameworkSubsets = GetTargetFrameworkSubsets(projectInstance);
             }
+
             #endregion // constructors
+
+            public string[] TargetFrameworkDirectories { get; private set; }
+            public string[] AllowedAssemblyExtensions { get; }
+            public string TargetProcessorArchitecture { get; }
+            public string TargetFrameworkVersion { get; }
+            public string TargetFrameworkMoniker { get; }
+            public string TargetFrameworkMonikerDisplayName { get; }
+            public string TargetedRuntimeVersion { get; }
+            public string[] FullFrameworkFolders { get; }
+            public string ProfileName { get; }
+            public string[] PdtarSearchPaths { get; }
+            public string[] CandidateAssemblyFiles { get; }
+            public string StateFile { get; }
+            public ITaskItem[] InstalledAssemblySubsetTables { get; }
+            public bool IgnoreDefaultInstalledAssemblySubsetTables { get; }
+            public string[] TargetFrameworkSubsets { get; }
+            public string[] FullTargetFrameworkSubsetNames { get; }
+            public ITaskItem[] FullFrameworkAssemblyTables { get; }
+            public string[] LatestTargetFrameworkDirectories { get; }
+
+            #region private methods
+
+            private static string GetFullPathInProjectContext(ProjectInstance projectInstance, string path)
+            {
+                var fullPath = path;
+
+                if (!Path.IsPathRooted(path))
+                {
+                    var projectDir = projectInstance.GetPropertyValue(MSBuildProjectDirectory).Trim();
+
+                    fullPath = Path.Combine(projectDir, path);
+
+                    fullPath = Path.GetFullPath(fullPath);
+                }
+
+                return fullPath;
+            }
+
+            #endregion // private methods
+
+            #region private fields
+
+            // RAR related property/item names etc
+            private const string TargetFrameworkDirectory = "TargetFrameworkDirectory";
+            private const string RegistrySearchPathFormat = "Registry:{0},{1},{2}{3}";
+            private const string FrameworkRegistryBase = "FrameworkRegistryBase";
+            private const string TargetFrameworkVersionName = "TargetFrameworkVersion";
+            private const string AssemblyFoldersSuffix = "AssemblyFoldersSuffix";
+            private const string AssemblyFoldersExConditions = "AssemblyFoldersExConditions";
+            private const string AllowedReferenceAssemblyFileExtensions = "AllowedReferenceAssemblyFileExtensions";
+            private const string ProcessorArchitecture = "ProcessorArchitecture";
+            private const string TargetFrameworkMonikerName = "TargetFrameworkMoniker";
+            private const string TargetFrameworkMonikerDisplayNameName = "TargetFrameworkMonikerDisplayName";
+            private const string TargetedRuntimeVersionName = "TargetedRuntimeVersion";
+            private const string FullFrameworkReferenceAssemblyPaths = "_FullFrameworkReferenceAssemblyPaths";
+            private const string TargetFrameworkProfile = "TargetFrameworkProfile";
+
+            private const string ProjectDesignTimeAssemblyResolutionSearchPaths =
+                "ProjectDesignTimeAssemblyResolutionSearchPaths";
+
+            private const string Content = "Content";
+            private const string None = "None";
+            private const string RARResolvedReferencePath = "ReferencePath";
+            private const string IntermediateOutputPath = "IntermediateOutputPath";
+            private const string InstalledAssemblySubsetTablesName = "InstalledAssemblySubsetTables";
+            private const string IgnoreInstalledAssemblySubsetTables = "IgnoreInstalledAssemblySubsetTables";
+            private const string ReferenceInstalledAssemblySubsets = "_ReferenceInstalledAssemblySubsets";
+            private const string FullReferenceAssemblyNames = "FullReferenceAssemblyNames";
+            private const string LatestTargetFrameworkDirectoriesName = "LatestTargetFrameworkDirectories";
+            private const string FullFrameworkAssemblyTablesName = "FullFrameworkAssemblyTables";
+            private const string MSBuildProjectDirectory = "MSBuildProjectDirectory";
+
+            #endregion //private fields
 
             #region public properties
 
@@ -457,9 +498,9 @@ namespace VsTeXProject.VisualStudio.Project
             {
                 if (TargetFrameworkDirectories == null)
                 {
-                    string val = projectInstance.GetPropertyValue(TargetFrameworkDirectory).Trim();
+                    var val = projectInstance.GetPropertyValue(TargetFrameworkDirectory).Trim();
 
-                    TargetFrameworkDirectories = val.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                    TargetFrameworkDirectories = val.Split(new[] {';'}, StringSplitOptions.RemoveEmptyEntries)
                         .Select(s => s.Trim())
                         .Where(s => s.Length > 0)
                         .ToArray();
@@ -472,7 +513,7 @@ namespace VsTeXProject.VisualStudio.Project
             {
                 string[] allowedAssemblyExtensions;
 
-                string val = projectInstance.GetPropertyValue(AllowedReferenceAssemblyFileExtensions).Trim();
+                var val = projectInstance.GetPropertyValue(AllowedReferenceAssemblyFileExtensions).Trim();
 
                 allowedAssemblyExtensions = val.Split(';').Select(s => s.Trim()).ToArray();
 
@@ -481,44 +522,44 @@ namespace VsTeXProject.VisualStudio.Project
 
             private static string GetTargetProcessorArchitecture(ProjectInstance projectInstance)
             {
-                string val = projectInstance.GetPropertyValue(ProcessorArchitecture).Trim();
+                var val = projectInstance.GetPropertyValue(ProcessorArchitecture).Trim();
 
                 return val;
             }
 
             private static string GetTargetFrameworkVersion(ProjectInstance projectInstance)
             {
-                string val = projectInstance.GetPropertyValue(TargetFrameworkVersionName).Trim();
+                var val = projectInstance.GetPropertyValue(TargetFrameworkVersionName).Trim();
 
                 return val;
             }
 
             private static string GetTargetFrameworkMoniker(ProjectInstance projectInstance)
             {
-                string val = projectInstance.GetPropertyValue(TargetFrameworkMonikerName).Trim();
+                var val = projectInstance.GetPropertyValue(TargetFrameworkMonikerName).Trim();
 
                 return val;
             }
 
             private static string GetTargetFrameworkMonikerDisplayName(ProjectInstance projectInstance)
             {
-                string val = projectInstance.GetPropertyValue(TargetFrameworkMonikerDisplayNameName).Trim();
+                var val = projectInstance.GetPropertyValue(TargetFrameworkMonikerDisplayNameName).Trim();
 
                 return val;
             }
 
             private static string GetTargetedRuntimeVersion(ProjectInstance projectInstance)
             {
-                string val = projectInstance.GetPropertyValue(TargetedRuntimeVersionName).Trim();
+                var val = projectInstance.GetPropertyValue(TargetedRuntimeVersionName).Trim();
 
                 return val;
             }
 
             private static string[] GetFullFrameworkFolders(ProjectInstance projectInstance)
             {
-                string val = projectInstance.GetPropertyValue(FullFrameworkReferenceAssemblyPaths).Trim();
+                var val = projectInstance.GetPropertyValue(FullFrameworkReferenceAssemblyPaths).Trim();
 
-                string[] _fullFrameworkFolders = val.Split(';').Select(s => s.Trim()).ToArray();
+                var _fullFrameworkFolders = val.Split(';').Select(s => s.Trim()).ToArray();
 
                 return _fullFrameworkFolders;
             }
@@ -527,26 +568,28 @@ namespace VsTeXProject.VisualStudio.Project
             {
                 IEnumerable<ITaskItem> taskItems = projectInstance.GetItems(LatestTargetFrameworkDirectoriesName);
 
-                string[] latestTargetFrameworkDirectory = (taskItems.Select((Func<ITaskItem, string>)((item) => { return item.ItemSpec.Trim(); }))).ToArray();
+                var latestTargetFrameworkDirectory =
+                    taskItems.Select(item => { return item.ItemSpec.Trim(); }).ToArray();
 
                 return latestTargetFrameworkDirectory;
             }
 
             private static string GetProfileName(ProjectInstance projectInstance)
             {
-                string val = projectInstance.GetPropertyValue(TargetFrameworkProfile).Trim();
+                var val = projectInstance.GetPropertyValue(TargetFrameworkProfile).Trim();
 
                 return val;
             }
+
             #endregion //common properties/items
 
             #region project dtar specific properties/items
 
             private static string[] GetPdtarSearchPaths(ProjectInstance projectInstance)
             {
-                string val = projectInstance.GetPropertyValue(ProjectDesignTimeAssemblyResolutionSearchPaths).Trim();
+                var val = projectInstance.GetPropertyValue(ProjectDesignTimeAssemblyResolutionSearchPaths).Trim();
 
-                string[] _pdtarSearchPaths = val.Split(';').Select(s => s.Trim()).ToArray();
+                var _pdtarSearchPaths = val.Split(';').Select(s => s.Trim()).ToArray();
 
                 return _pdtarSearchPaths;
             }
@@ -559,18 +602,20 @@ namespace VsTeXProject.VisualStudio.Project
                 candidateAssemblyFilesList.AddRange(projectInstance.GetItems(None));
                 candidateAssemblyFilesList.AddRange(projectInstance.GetItems(RARResolvedReferencePath));
 
-                string[] candidateAssemblyFiles = candidateAssemblyFilesList.Select((Func<ProjectItemInstance, string>)((item) => { return item.GetMetadataValue("FullPath").Trim(); })).ToArray();
+                var candidateAssemblyFiles =
+                    candidateAssemblyFilesList.Select(item => { return item.GetMetadataValue("FullPath").Trim(); })
+                        .ToArray();
 
                 return candidateAssemblyFiles;
             }
 
             private static string GetStateFile(ProjectInstance projectInstance)
             {
-                string intermediatePath = projectInstance.GetPropertyValue(IntermediateOutputPath).Trim();
+                var intermediatePath = projectInstance.GetPropertyValue(IntermediateOutputPath).Trim();
 
                 intermediatePath = GetFullPathInProjectContext(projectInstance, intermediatePath);
 
-                string stateFile = Path.Combine(intermediatePath, "DesignTimeResolveAssemblyReferences.cache");
+                var stateFile = Path.Combine(intermediatePath, "DesignTimeResolveAssemblyReferences.cache");
 
                 return stateFile;
             }
@@ -582,13 +627,13 @@ namespace VsTeXProject.VisualStudio.Project
 
             private static bool GetIgnoreDefaultInstalledAssemblySubsetTables(ProjectInstance projectInstance)
             {
-                bool ignoreDefaultInstalledAssemblySubsetTables = false;
+                var ignoreDefaultInstalledAssemblySubsetTables = false;
 
-                string val = projectInstance.GetPropertyValue(IgnoreInstalledAssemblySubsetTables).Trim();
+                var val = projectInstance.GetPropertyValue(IgnoreInstalledAssemblySubsetTables).Trim();
 
-                if (!String.IsNullOrEmpty(val))
+                if (!string.IsNullOrEmpty(val))
                 {
-                    if (val == Boolean.TrueString || val == Boolean.FalseString)
+                    if (val == bool.TrueString || val == bool.FalseString)
                     {
                         ignoreDefaultInstalledAssemblySubsetTables = Convert.ToBoolean(val, CultureInfo.InvariantCulture);
                     }
@@ -601,16 +646,16 @@ namespace VsTeXProject.VisualStudio.Project
             {
                 IEnumerable<ITaskItem> taskItems = projectInstance.GetItems(ReferenceInstalledAssemblySubsets);
 
-                string[] targetFrameworkSubsets = (taskItems.Select((Func<ITaskItem, string>)((item) => { return item.ItemSpec.Trim(); }))).ToArray();
+                var targetFrameworkSubsets = taskItems.Select(item => { return item.ItemSpec.Trim(); }).ToArray();
 
                 return targetFrameworkSubsets;
             }
 
             private static string[] GetFullTargetFrameworkSubsetNames(ProjectInstance projectInstance)
             {
-                string val = projectInstance.GetPropertyValue(FullReferenceAssemblyNames).Trim();
+                var val = projectInstance.GetPropertyValue(FullReferenceAssemblyNames).Trim();
 
-                string[] fullTargetFrameworkSubsetNames = val.Split(';').Select(s => s.Trim()).ToArray();
+                var fullTargetFrameworkSubsetNames = val.Split(';').Select(s => s.Trim()).ToArray();
 
                 return fullTargetFrameworkSubsetNames;
             }
@@ -623,24 +668,6 @@ namespace VsTeXProject.VisualStudio.Project
             #endregion //project dtar specific properties/items
 
             #endregion // public properties
-
-            #region private methods
-            static string GetFullPathInProjectContext(ProjectInstance projectInstance, string path)
-            {
-                string fullPath = path;
-
-                if (!Path.IsPathRooted(path))
-                {
-                    string projectDir = projectInstance.GetPropertyValue(MSBuildProjectDirectory).Trim();
-
-                    fullPath = Path.Combine(projectDir, path);
-
-                    fullPath = Path.GetFullPath(fullPath);
-                }
-
-                return fullPath;
-            }
-            #endregion // private methods
         }
     }
 }

@@ -47,7 +47,7 @@ a particular purpose and non-infringement.
 ********************************************************************************************/
 
 using System;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -55,22 +55,11 @@ using ShellConstants = Microsoft.VisualStudio.Shell.Interop.Constants;
 
 namespace VsTeXProject.VisualStudio.Project
 {
-
     [CLSCompliant(false)]
     public abstract class SelectionListener : IVsSelectionEvents, IDisposable
     {
-        #region fields
-        private uint eventsCookie;
-        private IVsMonitorSelection monSel;
-        private ServiceProvider serviceProvider;
-        private bool isDisposed;
-        /// <summary>
-        /// Defines an object that will be a mutex for this object for synchronizing thread calls.
-        /// </summary>
-        private static volatile object Mutex = new object();
-        #endregion
-
         #region ctors
+
         protected SelectionListener(ServiceProvider serviceProviderParameter)
         {
             if (serviceProviderParameter == null)
@@ -78,40 +67,53 @@ namespace VsTeXProject.VisualStudio.Project
                 throw new ArgumentNullException("serviceProviderParameter");
             }
 
-            this.serviceProvider = serviceProviderParameter;
-            this.monSel = this.serviceProvider.GetService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
+            ServiceProvider = serviceProviderParameter;
+            SelectionMonitor = ServiceProvider.GetService(typeof (SVsShellMonitorSelection)) as IVsMonitorSelection;
 
-            if(this.monSel == null)
+            if (SelectionMonitor == null)
             {
                 throw new InvalidOperationException();
             }
         }
+
+        #endregion
+
+        #region IDisposable Members
+
+        /// <summary>
+        ///     The IDispose interface Dispose method for disposing the object determinastically.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
+
+        #region fields
+
+        private uint eventsCookie;
+        private bool isDisposed;
+
+        /// <summary>
+        ///     Defines an object that will be a mutex for this object for synchronizing thread calls.
+        /// </summary>
+        private static volatile object Mutex = new object();
+
         #endregion
 
         #region properties
+
         protected uint EventsCookie
         {
-            get
-            {
-                return this.eventsCookie;
-            }
+            get { return eventsCookie; }
         }
 
-        protected IVsMonitorSelection SelectionMonitor
-        {
-            get
-            {
-                return this.monSel;
-            }
-        }
+        protected IVsMonitorSelection SelectionMonitor { get; }
 
-        protected ServiceProvider ServiceProvider
-        {
-            get
-            {
-                return this.serviceProvider;
-            }
-        }
+        protected ServiceProvider ServiceProvider { get; }
+
         #endregion
 
         #region IVsSelectionEvents Members
@@ -126,57 +128,51 @@ namespace VsTeXProject.VisualStudio.Project
             return VSConstants.E_NOTIMPL;
         }
 
-        public virtual int OnSelectionChanged(IVsHierarchy pHierOld, uint itemidOld, IVsMultiItemSelect pMISOld, ISelectionContainer pSCOld, IVsHierarchy pHierNew, uint itemidNew, IVsMultiItemSelect pMISNew, ISelectionContainer pSCNew)
+        public virtual int OnSelectionChanged(IVsHierarchy pHierOld, uint itemidOld, IVsMultiItemSelect pMISOld,
+            ISelectionContainer pSCOld, IVsHierarchy pHierNew, uint itemidNew, IVsMultiItemSelect pMISNew,
+            ISelectionContainer pSCNew)
         {
             return VSConstants.E_NOTIMPL;
         }
 
         #endregion
 
-        #region IDisposable Members
-        /// <summary>
-        /// The IDispose interface Dispose method for disposing the object determinastically.
-        /// </summary>
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-        #endregion
-
         #region methods
+
         public void Init()
         {
-            if(this.SelectionMonitor != null)
+            if (SelectionMonitor != null)
             {
-                ErrorHandler.ThrowOnFailure(this.SelectionMonitor.AdviseSelectionEvents(this, out this.eventsCookie));
+                ErrorHandler.ThrowOnFailure(SelectionMonitor.AdviseSelectionEvents(this, out eventsCookie));
             }
         }
 
         /// <summary>
-        /// The method that does the cleanup.
+        ///     The method that does the cleanup.
         /// </summary>
         /// <param name="disposing"></param>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA1806:DoNotIgnoreMethodResults", MessageId = "Microsoft.VisualStudio.Shell.Interop.IVsMonitorSelection.UnadviseSelectionEvents(System.UInt32)")]
+        [SuppressMessage("Microsoft.Usage", "CA1806:DoNotIgnoreMethodResults",
+            MessageId =
+                "Microsoft.VisualStudio.Shell.Interop.IVsMonitorSelection.UnadviseSelectionEvents(System.UInt32)")]
         protected virtual void Dispose(bool disposing)
         {
             // Everybody can go here.
-            if(!this.isDisposed)
+            if (!isDisposed)
             {
                 // Synchronize calls to the Dispose simulteniously.
-                lock(Mutex)
+                lock (Mutex)
                 {
-                    if(disposing && this.eventsCookie != (uint)ShellConstants.VSCOOKIE_NIL && this.SelectionMonitor != null)
+                    if (disposing && eventsCookie != (uint) ShellConstants.VSCOOKIE_NIL && SelectionMonitor != null)
                     {
-                        this.SelectionMonitor.UnadviseSelectionEvents((uint)this.eventsCookie);
-                        this.eventsCookie = (uint)ShellConstants.VSCOOKIE_NIL;
+                        SelectionMonitor.UnadviseSelectionEvents(eventsCookie);
+                        eventsCookie = (uint) ShellConstants.VSCOOKIE_NIL;
                     }
 
-                    this.isDisposed = true;
+                    isDisposed = true;
                 }
             }
         }
-        #endregion
 
+        #endregion
     }
 }

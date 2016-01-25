@@ -53,28 +53,31 @@ using Microsoft.VisualStudio.Shell.Interop;
 namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
-    /// Used for adding a build dependency to nested project (not a real project reference)
+    ///     Used for adding a build dependency to nested project (not a real project reference)
     /// </summary>
     public class NestedProjectBuildDependency : IVsBuildDependency
     {
-        IVsHierarchy dependentHierarchy = null;
+        private readonly IVsHierarchy dependentHierarchy;
 
         #region ctors
+
         [CLSCompliant(false)]
         public NestedProjectBuildDependency(IVsHierarchy dependentHierarchy)
         {
             this.dependentHierarchy = dependentHierarchy;
         }
+
         #endregion
 
         #region IVsBuildDependency methods
+
         public int get_CanonicalName(out string canonicalName)
         {
             canonicalName = null;
             return VSConstants.S_OK;
         }
 
-        public int get_Type(out System.Guid guidType)
+        public int get_Type(out Guid guidType)
         {
             // All our dependencies are build projects
             guidType = VSConstants.GUID_VS_DEPTYPE_BUILD_PROJECT;
@@ -111,11 +114,11 @@ namespace VsTeXProject.VisualStudio.Project
 
         public int get_ReferredProject(out object unknownProject)
         {
-            unknownProject = this.dependentHierarchy;
+            unknownProject = dependentHierarchy;
 
-            return (unknownProject == null) ? VSConstants.E_FAIL : VSConstants.S_OK;
+            return unknownProject == null ? VSConstants.E_FAIL : VSConstants.S_OK;
         }
-        #endregion
 
+        #endregion
     }
 }

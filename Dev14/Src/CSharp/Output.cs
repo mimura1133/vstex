@@ -48,28 +48,32 @@ a particular purpose and non-infringement.
 
 using System;
 using System.Diagnostics;
+using System.IO;
+using Microsoft.Build.Execution;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.Build.Execution;
 
 namespace VsTeXProject.VisualStudio.Project
 {
-    class Output : IVsOutput2
+    internal class Output : IVsOutput2
     {
-        private ProjectNode project;
-        private ProjectItemInstance output;
+        private readonly ProjectItemInstance output;
+        private readonly ProjectNode project;
 
         /// <summary>
-        /// Constructor for IVSOutput2 implementation
+        ///     Constructor for IVSOutput2 implementation
         /// </summary>
         /// <param name="projectManager">Project that produce this output</param>
-        /// <param name="outputAssembly">MSBuild generated item corresponding to the output assembly (by default, these would be of type MainAssembly</param>
+        /// <param name="outputAssembly">
+        ///     MSBuild generated item corresponding to the output assembly (by default, these would be of
+        ///     type MainAssembly
+        /// </param>
         public Output(ProjectNode projectManager, ProjectItemInstance outputAssembly)
         {
-            if(projectManager == null)
+            if (projectManager == null)
                 throw new ArgumentNullException("projectManager");
-            if(outputAssembly == null)
+            if (outputAssembly == null)
                 throw new ArgumentNullException("outputAssembly");
 
             project = projectManager;
@@ -82,10 +86,10 @@ namespace VsTeXProject.VisualStudio.Project
         {
             // Get the output assembly path (including the name)
             pbstrCanonicalName = output.GetMetadataValue(ProjectFileConstants.FinalOutputPath);
-            Debug.Assert(!String.IsNullOrEmpty(pbstrCanonicalName), "Output Assembly not defined");
+            Debug.Assert(!string.IsNullOrEmpty(pbstrCanonicalName), "Output Assembly not defined");
 
             // Make sure we have a full path
-            if(!System.IO.Path.IsPathRooted(pbstrCanonicalName))
+            if (!Path.IsPathRooted(pbstrCanonicalName))
             {
                 pbstrCanonicalName = new Url(project.BaseURI, pbstrCanonicalName).AbsoluteUrl;
             }
@@ -93,19 +97,20 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// This path must start with file:/// if it wants other project
-        /// to be able to reference the output on disk.
-        /// If the output is not on disk, then this requirement does not
-        /// apply as other projects probably don't know how to access it.
+        ///     This path must start with file:/// if it wants other project
+        ///     to be able to reference the output on disk.
+        ///     If the output is not on disk, then this requirement does not
+        ///     apply as other projects probably don't know how to access it.
         /// </summary>
         public virtual int get_DeploySourceURL(out string pbstrDeploySourceURL)
         {
-            string path = output.GetMetadataValue(ProjectFileConstants.FinalOutputPath);
-            if(string.IsNullOrEmpty(path))
+            var path = output.GetMetadataValue(ProjectFileConstants.FinalOutputPath);
+            if (string.IsNullOrEmpty(path))
             {
                 throw new InvalidOperationException();
             }
-            if(path.Length < 9 || String.Compare(path.Substring(0, 8), "file:///", StringComparison.OrdinalIgnoreCase) != 0)
+            if (path.Length < 9 ||
+                string.Compare(path.Substring(0, 8), "file:///", StringComparison.OrdinalIgnoreCase) != 0)
                 path = "file:///" + path; // TODO: does not work with '#' char, see e.g. bug 641942
             pbstrDeploySourceURL = path;
             return VSConstants.S_OK;
@@ -113,7 +118,7 @@ namespace VsTeXProject.VisualStudio.Project
 
         public int get_DisplayName(out string pbstrDisplayName)
         {
-            return this.get_CanonicalName(out pbstrDisplayName);
+            return get_CanonicalName(out pbstrDisplayName);
         }
 
         public virtual int get_Property(string szProperty, out object pvar)
@@ -129,7 +134,7 @@ namespace VsTeXProject.VisualStudio.Project
                 szProperty = ProjectFileConstants.FinalOutputPath;
             }
 
-            string value = output.GetMetadataValue(szProperty);
+            var value = output.GetMetadataValue(szProperty);
             pvar = value;
 
             // If we don't have a value, we are expected to return unimplemented
@@ -149,15 +154,15 @@ namespace VsTeXProject.VisualStudio.Project
 
         public int get_RootRelativeURL(out string pbstrRelativePath)
         {
-            pbstrRelativePath = String.Empty;
+            pbstrRelativePath = string.Empty;
             object variant;
             // get the corresponding property
 
-            if(ErrorHandler.Succeeded(this.get_Property("TargetPath", out variant)))
+            if (ErrorHandler.Succeeded(get_Property("TargetPath", out variant)))
             {
-                string var = variant as String;
+                var var = variant as string;
 
-                if(var != null)
+                if (var != null)
                 {
                     pbstrRelativePath = var;
                 }

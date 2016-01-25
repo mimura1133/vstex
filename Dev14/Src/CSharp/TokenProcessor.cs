@@ -53,11 +53,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
-    /// Replacement type
+    ///     Replacement type
     /// </summary>
     public enum TokenReplaceType
     {
@@ -67,21 +68,74 @@ namespace VsTeXProject.VisualStudio.Project
     }
 
     /// <summary>
-    /// Contain a number of functions that handle token replacement
+    ///     Contain a number of functions that handle token replacement
     /// </summary>
     [CLSCompliant(false)]
     public class TokenProcessor
     {
         #region fields
-        // Internal fields
-        private ArrayList tokenlist;
 
+        // Internal fields
+        private readonly ArrayList tokenlist;
+
+        #endregion
+
+        #region Guid generators
+
+        /// <summary>
+        ///     Generates a string representation of a guid with the following format:
+        ///     0x01020304, 0x0506, 0x0708, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10
+        /// </summary>
+        /// <param name="value">Guid to be generated</param>
+        /// <returns>The guid as string</returns>
+        [SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic")]
+        public string GuidToForm1(Guid value)
+        {
+            var GuidBytes = value.ToByteArray();
+            var ResultingStr = new StringBuilder(80);
+
+            // First 4 bytes
+            var i = 0;
+            var Number = 0;
+            for (i = 0; i < 4; ++i)
+            {
+                int CurrentByte = GuidBytes[i];
+                Number += CurrentByte << (8*i);
+            }
+            var FourBytes = (uint) Number;
+            ResultingStr.AppendFormat(CultureInfo.InvariantCulture, "0x{0}",
+                FourBytes.ToString("X", CultureInfo.InvariantCulture));
+
+            // 2 chunks of 2 bytes
+            for (var j = 0; j < 2; ++j)
+            {
+                Number = 0;
+                for (var k = 0; k < 2; ++k)
+                {
+                    int CurrentByte = GuidBytes[i++];
+                    Number += CurrentByte << (8*k);
+                }
+                var TwoBytes = (ushort) Number;
+                ResultingStr.AppendFormat(CultureInfo.InvariantCulture, ", 0x{0}",
+                    TwoBytes.ToString("X", CultureInfo.InvariantCulture));
+            }
+
+            // 8 chunks of 1 bytes
+            for (var j = 0; j < 8; ++j)
+            {
+                ResultingStr.AppendFormat(CultureInfo.InvariantCulture, ", 0x{0}",
+                    GuidBytes[i++].ToString("X", CultureInfo.InvariantCulture));
+            }
+
+            return ResultingStr.ToString();
+        }
 
         #endregion
 
         #region Initialization
+
         /// <summary>
-        /// Constructor
+        ///     Constructor
         /// </summary>
         public TokenProcessor()
         {
@@ -89,7 +143,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Reset list of TokenReplacer entries
+        ///     Reset list of TokenReplacer entries
         /// </summary>
         public virtual void Reset()
         {
@@ -98,7 +152,7 @@ namespace VsTeXProject.VisualStudio.Project
 
 
         /// <summary>
-        /// Add a replacement type entry
+        ///     Add a replacement type entry
         /// </summary>
         /// <param name="token">token to replace</param>
         /// <param name="replacement">replacement string</param>
@@ -108,7 +162,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Add replace between entry
+        ///     Add replace between entry
         /// </summary>
         /// <param name="tokenStart">Start token</param>
         /// <param name="tokenEnd">End token</param>
@@ -119,33 +173,36 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Add a deletion entry
+        ///     Add a deletion entry
         /// </summary>
         /// <param name="tokenToDelete">Token to delete</param>
         public virtual void AddDelete(string tokenToDelete)
         {
             tokenlist.Add(new DeleteToken(tokenToDelete));
         }
+
         #endregion
 
         #region TokenProcessing
+
         /// <summary>
-        /// For all known token, replace token with correct value
+        ///     For all known token, replace token with correct value
         /// </summary>
         /// <param name="source">File of the source file</param>
         /// <param name="destination">File of the destination file</param>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1800:DoNotCastUnnecessarily"), SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "Untoken")]
+        [SuppressMessage("Microsoft.Performance", "CA1800:DoNotCastUnnecessarily"),
+         SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "Untoken")]
         public virtual void UntokenFile(string source, string destination)
         {
-            if(string.IsNullOrEmpty(source))
+            if (string.IsNullOrEmpty(source))
                 throw new ArgumentNullException("source");
 
-            if(string.IsNullOrEmpty(destination))
+            if (string.IsNullOrEmpty(destination))
                 throw new ArgumentNullException("destination");
 
             // Make sure that the destination folder exists.
-            string destinationFolder = Path.GetDirectoryName(destination);
-            if(!Directory.Exists(destinationFolder))
+            var destinationFolder = Path.GetDirectoryName(destination);
+            if (!Directory.Exists(destinationFolder))
             {
                 Directory.CreateDirectory(destinationFolder);
             }
@@ -156,13 +213,13 @@ namespace VsTeXProject.VisualStudio.Project
             // any other type of binary file.
 
             uint binaryType;
-            if(!NativeMethods.GetBinaryType(source, out binaryType))
+            if (!NativeMethods.GetBinaryType(source, out binaryType))
             {
-                Encoding encoding = Encoding.Default;
+                var encoding = Encoding.Default;
                 string buffer = null;
                 // Create the reader to get the text. Note that we will default to ASCII as
                 // encoding if the file does not contains a different signature.
-                using(StreamReader reader = new StreamReader(source, Encoding.ASCII, true))
+                using (var reader = new StreamReader(source, Encoding.ASCII, true))
                 {
                     // Get the content of the file.
                     buffer = reader.ReadToEnd();
@@ -171,24 +228,23 @@ namespace VsTeXProject.VisualStudio.Project
                     // performed on the file.
                     encoding = reader.CurrentEncoding;
                 }
-                foreach(object pair in tokenlist)
+                foreach (var pair in tokenlist)
                 {
-                    if(pair is DeleteToken)
-                        DeleteTokens(ref buffer, (DeleteToken)pair);
-                    if(pair is ReplaceBetweenPairToken)
-                        ReplaceBetweenTokens(ref buffer, (ReplaceBetweenPairToken)pair);
-                    if(pair is ReplacePairToken)
-                        ReplaceTokens(ref buffer, (ReplacePairToken)pair);
+                    if (pair is DeleteToken)
+                        DeleteTokens(ref buffer, (DeleteToken) pair);
+                    if (pair is ReplaceBetweenPairToken)
+                        ReplaceBetweenTokens(ref buffer, (ReplaceBetweenPairToken) pair);
+                    if (pair is ReplacePairToken)
+                        ReplaceTokens(ref buffer, (ReplacePairToken) pair);
                 }
                 File.WriteAllText(destination, buffer, encoding);
             }
             else
                 File.Copy(source, destination);
-
         }
 
         /// <summary>
-        /// Replaces the tokens in a buffer with the replacement string
+        ///     Replaces the tokens in a buffer with the replacement string
         /// </summary>
         /// <param name="buffer">Buffer to update</param>
         /// <param name="tokenToReplace">replacement data</param>
@@ -208,7 +264,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Deletes the token from the buffer
+        ///     Deletes the token from the buffer
         /// </summary>
         /// <param name="buffer">Buffer to update</param>
         /// <param name="tokenToDelete">token to delete</param>
@@ -228,7 +284,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Replaces the token from the buffer between the provided tokens
+        ///     Replaces the token from the buffer between the provided tokens
         /// </summary>
         /// <param name="buffer">Buffer to update</param>
         /// <param name="rpBetweenToken">replacement token</param>
@@ -244,85 +300,40 @@ namespace VsTeXProject.VisualStudio.Project
                 throw new ArgumentNullException("buffer");
             }
 
-            string regularExp = rpBetweenToken.TokenStart + "[^" + rpBetweenToken.TokenIdentifier + "]*" + rpBetweenToken.TokenEnd;
-            buffer = System.Text.RegularExpressions.Regex.Replace(buffer, regularExp, rpBetweenToken.TokenReplacement);
+            var regularExp = rpBetweenToken.TokenStart + "[^" + rpBetweenToken.TokenIdentifier + "]*" +
+                             rpBetweenToken.TokenEnd;
+            buffer = Regex.Replace(buffer, regularExp, rpBetweenToken.TokenReplacement);
         }
 
-        #endregion
-
-        #region Guid generators
-        /// <summary>
-        /// Generates a string representation of a guid with the following format:
-        /// 0x01020304, 0x0506, 0x0708, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10
-        /// </summary>
-        /// <param name="value">Guid to be generated</param>
-        /// <returns>The guid as string</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic")]
-        public string GuidToForm1(Guid value)
-        {
-            byte[] GuidBytes = value.ToByteArray();
-            StringBuilder ResultingStr = new StringBuilder(80);
-
-            // First 4 bytes
-            int i = 0;
-            int Number = 0;
-            for(i = 0; i < 4; ++i)
-            {
-                int CurrentByte = GuidBytes[i];
-                Number += CurrentByte << (8 * i);
-            }
-            UInt32 FourBytes = (UInt32)Number;
-            ResultingStr.AppendFormat(CultureInfo.InvariantCulture, "0x{0}", FourBytes.ToString("X", CultureInfo.InvariantCulture));
-
-            // 2 chunks of 2 bytes
-            for(int j = 0; j < 2; ++j)
-            {
-                Number = 0;
-                for(int k = 0; k < 2; ++k)
-                {
-                    int CurrentByte = GuidBytes[i++];
-                    Number += CurrentByte << (8 * k);
-                }
-                UInt16 TwoBytes = (UInt16)Number;
-                ResultingStr.AppendFormat(CultureInfo.InvariantCulture, ", 0x{0}", TwoBytes.ToString("X", CultureInfo.InvariantCulture));
-            }
-
-            // 8 chunks of 1 bytes
-            for(int j = 0; j < 8; ++j)
-            {
-                ResultingStr.AppendFormat(CultureInfo.InvariantCulture, ", 0x{0}", GuidBytes[i++].ToString("X", CultureInfo.InvariantCulture));
-            }
-
-            return ResultingStr.ToString();
-        }
         #endregion
 
         #region Helper Methods
+
         /// <summary>
-        /// This function will accept a subset of the characters that can create an
-        /// identifier name: there are other unicode char that can be inside the name, but
-        /// this function will not allow. By now it can work this way, but when and if the
-        /// VSIP package will handle also languages different from english, this function
-        /// must be changed.
+        ///     This function will accept a subset of the characters that can create an
+        ///     identifier name: there are other unicode char that can be inside the name, but
+        ///     this function will not allow. By now it can work this way, but when and if the
+        ///     VSIP package will handle also languages different from english, this function
+        ///     must be changed.
         /// </summary>
         /// <param name="c">Character to validate</param>
         /// <returns>true if successful false otherwise</returns>
         [SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "c")]
         protected static bool IsValidIdentifierChar(char c)
         {
-            if((c >= 'a') && (c <= 'z'))
+            if ((c >= 'a') && (c <= 'z'))
             {
                 return true;
             }
-            if((c >= 'A') && (c <= 'Z'))
+            if ((c >= 'A') && (c <= 'Z'))
             {
                 return true;
             }
-            if(c == '_')
+            if (c == '_')
             {
                 return true;
             }
-            if((c >= '0') && (c <= '9'))
+            if ((c >= '0') && (c <= '9'))
             {
                 return true;
             }
@@ -331,18 +342,18 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Verifies if the start character is valid
+        ///     Verifies if the start character is valid
         /// </summary>
         /// <param name="c">Start character</param>
         /// <returns>true if successful false otherwise</returns>
         [SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "c")]
         protected static bool IsValidIdentifierStartChar(char c)
         {
-            if(!IsValidIdentifierChar(c))
+            if (!IsValidIdentifierChar(c))
             {
                 return false;
             }
-            if((c >= '0') && (c <= '9'))
+            if ((c >= '0') && (c <= '9'))
             {
                 return false;
             }
@@ -351,34 +362,36 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// The goal here is to reduce the risk of name conflict between 2 classes
-        /// added in different directories. This code does NOT garanty uniqueness.
-        /// To garanty uniqueness, you should change this function to work with
-        /// the language service to verify that the namespace+class generated does
-        /// not conflict.
+        ///     The goal here is to reduce the risk of name conflict between 2 classes
+        ///     added in different directories. This code does NOT garanty uniqueness.
+        ///     To garanty uniqueness, you should change this function to work with
+        ///     the language service to verify that the namespace+class generated does
+        ///     not conflict.
         /// </summary>
         /// <param name="fileFullPath">Full path to the new file</param>
         /// <returns>Namespace to use for the new file</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic")]
+        [SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic")]
         public string GetFileNamespace(string fileFullPath, ProjectNode node)
         {
             if (node == null)
             {
                 throw new ArgumentNullException("node");
             }
-            
+
             // Get base namespace from the project
-            string namespce = node.GetProjectProperty("RootNamespace");
-            if(String.IsNullOrEmpty(namespce))
-                namespce = Path.GetFileNameWithoutExtension(fileFullPath); ;
+            var namespce = node.GetProjectProperty("RootNamespace");
+            if (string.IsNullOrEmpty(namespce))
+                namespce = Path.GetFileNameWithoutExtension(fileFullPath);
+            ;
 
             // If the item is added to a subfolder, the name space should reflect this.
             // This is done so that class names from 2 files with the same name but different
             // directories don't conflict.
-            string relativePath = Path.GetDirectoryName(fileFullPath);
-            string projectPath = Path.GetDirectoryName(node.GetMkDocument());
+            var relativePath = Path.GetDirectoryName(fileFullPath);
+            var projectPath = Path.GetDirectoryName(node.GetMkDocument());
             // Our project system only support adding files that are sibling of the project file or that are in subdirectories.
-            if(String.Compare(projectPath, 0, relativePath, 0, projectPath.Length, true, CultureInfo.CurrentCulture) == 0)
+            if (string.Compare(projectPath, 0, relativePath, 0, projectPath.Length, true, CultureInfo.CurrentCulture) ==
+                0)
             {
                 relativePath = relativePath.Substring(projectPath.Length);
             }
@@ -389,59 +402,59 @@ namespace VsTeXProject.VisualStudio.Project
             }
 
             // Get the list of parts
-            int index = 0;
+            var index = 0;
             string[] pathParts;
             pathParts = relativePath.Split(Path.DirectorySeparatorChar);
 
             // Use a string builder with default size being the expected size
-            StringBuilder result = new StringBuilder(namespce, namespce.Length + relativePath.Length + 1);
+            var result = new StringBuilder(namespce, namespce.Length + relativePath.Length + 1);
             // For each path part
-            while(index < pathParts.Length)
+            while (index < pathParts.Length)
             {
-                string part = pathParts[index];
+                var part = pathParts[index];
                 ++index;
 
                 // This could happen if the path had leading/trailing slash, we want to ignore empty pieces
-                if(String.IsNullOrEmpty(part))
+                if (string.IsNullOrEmpty(part))
                     continue;
 
                 // If we reach here, we will be adding something, so add a namespace separator '.'
                 result.Append('.');
 
                 // Make sure it starts with a letter
-                if(!char.IsLetter(part, 0))
+                if (!char.IsLetter(part, 0))
                     result.Append('N');
 
                 // Filter invalid namespace characters
-                foreach(char c in part)
+                foreach (var c in part)
                 {
-                    if(char.IsLetterOrDigit(c))
+                    if (char.IsLetterOrDigit(c))
                         result.Append(c);
                 }
             }
             return result.ToString();
         }
-        #endregion
 
+        #endregion
     }
 
     /// <summary>
-    ///  Storage classes for replacement tokens
+    ///     Storage classes for replacement tokens
     /// </summary>
     public class ReplacePairToken
     {
         /// <summary>
-        /// token string
+        ///     Replacement string
         /// </summary>
-        private string token;
+        private readonly string replacement;
 
         /// <summary>
-        /// Replacement string
+        ///     token string
         /// </summary>
-        private string replacement;
+        private readonly string token;
 
         /// <summary>
-        /// Constructor
+        ///     Constructor
         /// </summary>
         /// <param name="token">replaceable token</param>
         /// <param name="replacement">replacement string</param>
@@ -452,14 +465,15 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Token that needs to be replaced
+        ///     Token that needs to be replaced
         /// </summary>
         public string Token
         {
             get { return token; }
         }
+
         /// <summary>
-        /// String to replace the token with
+        ///     String to replace the token with
         /// </summary>
         public string Replacement
         {
@@ -468,17 +482,17 @@ namespace VsTeXProject.VisualStudio.Project
     }
 
     /// <summary>
-    /// Storage classes for token to be deleted
+    ///     Storage classes for token to be deleted
     /// </summary>
     public class DeleteToken
     {
         /// <summary>
-        /// String to delete
+        ///     String to delete
         /// </summary>
-        private string token;
+        private readonly string token;
 
         /// <summary>
-        /// Constructor
+        ///     Constructor
         /// </summary>
         /// <param name="token">Deletable token.</param>
         public DeleteToken(string token)
@@ -487,7 +501,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Token marking the end of the block to delete
+        ///     Token marking the end of the block to delete
         /// </summary>
         public string StringToDelete
         {
@@ -496,32 +510,32 @@ namespace VsTeXProject.VisualStudio.Project
     }
 
     /// <summary>
-    /// Storage classes for string to be deleted between tokens to be deleted 
+    ///     Storage classes for string to be deleted between tokens to be deleted
     /// </summary>
     public class ReplaceBetweenPairToken
     {
         /// <summary>
-        /// Token start
+        ///     Replacement string
         /// </summary>
-        private string tokenStart;
+        private readonly string replacement;
 
         /// <summary>
-        /// End token
+        ///     End token
         /// </summary>
-        private string tokenEnd;
+        private readonly string tokenEnd;
 
         /// <summary>
-        /// Replacement string
+        ///     Token identifier string
         /// </summary>
-        private string replacement;
+        private readonly string tokenidentifier;
 
         /// <summary>
-        /// Token identifier string
+        ///     Token start
         /// </summary>
-        private string tokenidentifier;
+        private readonly string tokenStart;
 
         /// <summary>
-        /// Constructor
+        ///     Constructor
         /// </summary>
         /// <param name="blockStart">Start token</param>
         /// <param name="blockEnd">End Token</param>
@@ -536,7 +550,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Token marking the begining of the block to delete
+        ///     Token marking the begining of the block to delete
         /// </summary>
         public string TokenStart
         {
@@ -544,7 +558,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Token marking the end of the block to delete
+        ///     Token marking the end of the block to delete
         /// </summary>
         public string TokenEnd
         {
@@ -552,7 +566,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Token marking the end of the block to delete
+        ///     Token marking the end of the block to delete
         /// </summary>
         public string TokenReplacement
         {
@@ -560,7 +574,7 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Token Identifier
+        ///     Token Identifier
         /// </summary>
         public string TokenIdentifier
         {

@@ -47,7 +47,6 @@ a particular purpose and non-infringement.
 ********************************************************************************************/
 
 using System;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using EnvDTE;
@@ -56,22 +55,26 @@ using VSLangProj;
 namespace VsTeXProject.VisualStudio.Project.Automation
 {
     /// <summary>
-    /// Represents an automation friendly version of a language-specific project.
+    ///     Represents an automation friendly version of a language-specific project.
     /// </summary>
     [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "OAVS")]
     [ComVisible(true), CLSCompliant(false)]
     public class OAVSProject : VSProject
     {
-        #region fields
-        private ProjectNode project;
-        private OAVSProjectEvents events;
-        #endregion
-
         #region ctors
+
         public OAVSProject(ProjectNode project)
         {
             this.project = project;
         }
+
+        #endregion
+
+        #region fields
+
+        private readonly ProjectNode project;
+        private OAVSProjectEvents events;
+
         #endregion
 
         #region VSProject Members
@@ -83,13 +86,11 @@ namespace VsTeXProject.VisualStudio.Project.Automation
 
         public virtual BuildManager BuildManager
         {
-            get
-            {
-                return new OABuildManager(this.project);
-            }
+            get { return new OABuildManager(project); }
         }
 
-        public virtual void CopyProject(string bstrDestFolder, string bstrDestUNCPath, prjCopyProjectOption copyProjectOption, string bstrUsername, string bstrPassword)
+        public virtual void CopyProject(string bstrDestFolder, string bstrDestUNCPath,
+            prjCopyProjectOption copyProjectOption, string bstrUsername, string bstrPassword)
         {
             throw new NotImplementedException();
         }
@@ -101,17 +102,14 @@ namespace VsTeXProject.VisualStudio.Project.Automation
 
         public virtual DTE DTE
         {
-            get
-            {
-                return (EnvDTE.DTE)this.project.Site.GetService(typeof(EnvDTE.DTE));
-            }
+            get { return (DTE) project.Site.GetService(typeof (DTE)); }
         }
 
         public virtual VSProjectEvents Events
         {
             get
             {
-                if(events == null)
+                if (events == null)
                     events = new OAVSProjectEvents(this);
                 return events;
             }
@@ -119,41 +117,38 @@ namespace VsTeXProject.VisualStudio.Project.Automation
 
         public virtual void Exec(prjExecCommand command, int bSuppressUI, object varIn, out object pVarOut)
         {
-            throw new NotImplementedException(); ;
+            throw new NotImplementedException();
+            ;
         }
 
         public virtual void GenerateKeyPairFiles(string strPublicPrivateFile, string strPublicOnlyFile)
         {
-            throw new NotImplementedException(); ;
+            throw new NotImplementedException();
+            ;
         }
 
         public virtual string GetUniqueFilename(object pDispatch, string bstrRoot, string bstrDesiredExt)
         {
-            throw new NotImplementedException(); ;
+            throw new NotImplementedException();
+            ;
         }
 
         public virtual Imports Imports
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
         }
 
         public virtual EnvDTE.Project Project
         {
-            get
-            {
-                return this.project.GetAutomationObject() as EnvDTE.Project;
-            }
+            get { return project.GetAutomationObject() as EnvDTE.Project; }
         }
 
         public virtual References References
         {
             get
             {
-                ReferenceContainerNode references = project.GetReferenceContainer() as ReferenceContainerNode;
-                if(null == references)
+                var references = project.GetReferenceContainer() as ReferenceContainerNode;
+                if (null == references)
                 {
                     return null;
                 }
@@ -166,86 +161,68 @@ namespace VsTeXProject.VisualStudio.Project.Automation
             throw new NotImplementedException();
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
+        [SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
         public virtual string TemplatePath
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
+        [SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
         public virtual ProjectItem WebReferencesFolder
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
+        [SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
         public virtual bool WorkOffline
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
+            set { throw new NotImplementedException(); }
         }
 
         #endregion
     }
 
     /// <summary>
-    /// Provides access to language-specific project events
+    ///     Provides access to language-specific project events
     /// </summary>
     [SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "OAVS")]
     [ComVisible(true), CLSCompliant(false)]
     public class OAVSProjectEvents : VSProjectEvents
     {
         #region fields
-        private OAVSProject vsProject;
+
+        private readonly OAVSProject vsProject;
+
         #endregion
 
         #region ctors
+
         public OAVSProjectEvents(OAVSProject vsProject)
         {
             this.vsProject = vsProject;
         }
+
         #endregion
 
         #region VSProjectEvents Members
 
         public virtual BuildManagerEvents BuildManagerEvents
         {
-            get
-            {
-                return vsProject.BuildManager as BuildManagerEvents;
-            }
+            get { return vsProject.BuildManager as BuildManagerEvents; }
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
+        [SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
         public virtual ImportsEvents ImportsEvents
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+            get { throw new NotImplementedException(); }
         }
 
         public virtual ReferencesEvents ReferencesEvents
         {
-            get
-            {
-                return vsProject.References as ReferencesEvents;
-            }
+            get { return vsProject.References as ReferencesEvents; }
         }
 
         #endregion
     }
-
 }

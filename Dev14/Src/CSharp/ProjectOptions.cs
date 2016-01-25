@@ -46,28 +46,35 @@ a particular purpose and non-infringement.
 
 ********************************************************************************************/
 
+using System.CodeDom.Compiler;
 using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Versioning;
 
 namespace VsTeXProject.VisualStudio.Project
 {
-    public class ProjectOptions : System.CodeDom.Compiler.CompilerParameters
+    public class ProjectOptions : CompilerParameters
     {
+        public ProjectOptions()
+        {
+            EmitManifest = true;
+            ModuleKind = ModuleKindFlags.ConsoleApplication;
+        }
+
         public string Config { get; set; }
 
         public ModuleKindFlags ModuleKind { get; set; }
 
         public bool EmitManifest { get; set; }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        [SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public StringCollection DefinedPreprocessorSymbols { get; set; }
 
         public string XmlDocFileName { get; set; }
 
         public string RecursiveWildcard { get; set; }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        [SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public StringCollection ReferencedModules { get; set; }
 
         public string Win32Icon { get; set; }
@@ -78,7 +85,7 @@ namespace VsTeXProject.VisualStudio.Project
 
         public bool IncrementalCompile { get; set; }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays")]
+        [SuppressMessage("Microsoft.Performance", "CA1819:PropertiesShouldNotReturnArrays")]
         public int[] SuppressedWarnings { get; set; }
 
         public bool CheckedArithmetic { get; set; }
@@ -104,7 +111,7 @@ namespace VsTeXProject.VisualStudio.Project
 
         public bool NoStandardLibrary { get; set; }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        [SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public StringCollection AdditionalSearchPaths { get; set; }
 
         public bool HeuristicReferenceResolution { get; set; }
@@ -117,12 +124,6 @@ namespace VsTeXProject.VisualStudio.Project
         public object UserLocaleId { get; set; }
 
         public FrameworkName TargetFrameworkMoniker { get; set; }
-
-        public ProjectOptions()
-        {
-            EmitManifest = true;
-            ModuleKind = ModuleKindFlags.ConsoleApplication;
-        }
 
         public virtual string GetOptionHelp()
         {

@@ -48,38 +48,35 @@ a particular purpose and non-infringement.
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Runtime.InteropServices;
-using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.Shell;
 
 namespace VsTeXProject.VisualStudio.Project
 {
     /// <summary>
-    /// Defines abstract package.
+    ///     Defines abstract package.
     /// </summary>
     [ComVisible(true)]
     [CLSCompliant(false)]
-    public abstract class ProjectPackage : Microsoft.VisualStudio.Shell.Package
+    public abstract class ProjectPackage : Package
     {
         #region fields
+
         /// <summary>
-        /// This is the place to register all the solution listeners.
+        ///     This is the place to register all the solution listeners.
         /// </summary>
-        private List<SolutionListener> solutionListeners = new List<SolutionListener>();
+        private readonly List<SolutionListener> solutionListeners = new List<SolutionListener>();
+
         #endregion
 
         #region properties
+
         /// <summary>
-        /// Add your listener to this list. They should be added in the overridden Initialize befaore calling the base.
+        ///     Add your listener to this list. They should be added in the overridden Initialize befaore calling the base.
         /// </summary>
         protected internal IList<SolutionListener> SolutionListeners
         {
-            get
-            {
-                return this.solutionListeners;
-            }
+            get { return solutionListeners; }
         }
 
         public abstract string ProductUserContext { get; }
@@ -87,17 +84,18 @@ namespace VsTeXProject.VisualStudio.Project
         #endregion
 
         #region methods
+
         protected override void Initialize()
         {
             base.Initialize();
 
             // Subscribe to the solution events
-            this.solutionListeners.Add(new SolutionListenerForProjectReferenceUpdate(this));
-            this.solutionListeners.Add(new SolutionListenerForProjectOpen(this));
-            this.solutionListeners.Add(new SolutionListenerForBuildDependencyUpdate(this));
-            this.solutionListeners.Add(new SolutionListenerForProjectEvents(this));
+            solutionListeners.Add(new SolutionListenerForProjectReferenceUpdate(this));
+            solutionListeners.Add(new SolutionListenerForProjectOpen(this));
+            solutionListeners.Add(new SolutionListenerForBuildDependencyUpdate(this));
+            solutionListeners.Add(new SolutionListenerForProjectEvents(this));
 
-            foreach(SolutionListener solutionListener in this.solutionListeners)
+            foreach (var solutionListener in solutionListeners)
             {
                 solutionListener.Init();
             }
@@ -108,23 +106,23 @@ namespace VsTeXProject.VisualStudio.Project
             // Unadvise solution listeners.
             try
             {
-                if(disposing)
+                if (disposing)
                 {
-                    foreach(SolutionListener solutionListener in this.solutionListeners)
+                    foreach (var solutionListener in solutionListeners)
                     {
                         solutionListener.Dispose();
                     }
 
                     // Dispose the UIThread singleton.
-                    UIThread.Instance.Dispose();                   
+                    UIThread.Instance.Dispose();
                 }
             }
             finally
             {
-
                 base.Dispose(disposing);
             }
         }
+
         #endregion
     }
 }

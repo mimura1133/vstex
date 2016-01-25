@@ -47,19 +47,17 @@ a particular purpose and non-infringement.
 ********************************************************************************************/
 
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using VsTeXProject.VisualStudio.Project.Automation;
 using MSBuild = Microsoft.Build.Evaluation;
 using MSBuildExecution = Microsoft.Build.Execution;
-using Microsoft.Build.Evaluation;
-using Microsoft.Build.Framework;
 
 namespace VsTeXProject.VisualStudio.Project
 {
@@ -68,142 +66,137 @@ namespace VsTeXProject.VisualStudio.Project
     public class AssemblyReferenceNode : ReferenceNode
     {
         #region fieds
+
         /// <summary>
-        /// The name of the assembly this refernce represents
+        ///     The name of the assembly this refernce represents
         /// </summary>
-        private System.Reflection.AssemblyName assemblyName;
-        private AssemblyName resolvedAssemblyName;
+        private AssemblyName assemblyName;
 
-        private string assemblyPath = String.Empty;
+        private string assemblyPath = string.Empty;
 
         /// <summary>
-        /// Defines the listener that would listen on file changes on the nested project node.
+        ///     Defines the listener that would listen on file changes on the nested project node.
         /// </summary>
         private FileChangeManager fileChangeListener;
 
         /// <summary>
-        /// A flag for specifying if the object was disposed.
+        ///     A flag for specifying if the object was disposed.
         /// </summary>
         private bool isDisposed;
+
         #endregion
 
         #region properties
+
         /// <summary>
-        /// The name of the assembly this reference represents.
+        ///     The name of the assembly this reference represents.
         /// </summary>
         /// <value></value>
-        internal System.Reflection.AssemblyName AssemblyName
+        internal AssemblyName AssemblyName
         {
-            get
-            {
-                return this.assemblyName;
-            }
+            get { return assemblyName; }
         }
 
         /// <summary>
-        /// Returns the name of the assembly this reference refers to on this specific
-        /// machine. It can be different from the AssemblyName property because it can
-        /// be more specific.
+        ///     Returns the name of the assembly this reference refers to on this specific
+        ///     machine. It can be different from the AssemblyName property because it can
+        ///     be more specific.
         /// </summary>
-        internal System.Reflection.AssemblyName ResolvedAssembly
-        {
-            get { return resolvedAssemblyName; }
-        }
+        internal AssemblyName ResolvedAssembly { get; private set; }
 
         public override string Url
         {
-            get
-            {
-                return this.assemblyPath;
-            }
+            get { return assemblyPath; }
         }
 
         public override string Caption
         {
-            get
-            {
-                return this.assemblyName.Name;
-            }
+            get { return assemblyName.Name; }
         }
 
-        private Automation.OAAssemblyReference assemblyRef;
+        private OAAssemblyReference assemblyRef;
+
         internal override object Object
         {
             get
             {
-                if(null == assemblyRef)
+                if (null == assemblyRef)
                 {
-                    assemblyRef = new Automation.OAAssemblyReference(this);
+                    assemblyRef = new OAAssemblyReference(this);
                 }
                 return assemblyRef;
             }
         }
+
         #endregion
 
         #region ctors
+
         /// <summary>
-        /// Constructor for the ReferenceNode
+        ///     Constructor for the ReferenceNode
         /// </summary>
         public AssemblyReferenceNode(ProjectNode root, ProjectElement element)
             : base(root, element)
         {
-            this.GetPathNameFromProjectFile();
+            GetPathNameFromProjectFile();
 
-            this.InitializeFileChangeEvents();
+            InitializeFileChangeEvents();
 
-            string include = this.ItemNode.GetMetadata(ProjectFileConstants.Include);
+            var include = ItemNode.GetMetadata(ProjectFileConstants.Include);
 
-            this.CreateFromAssemblyName(new System.Reflection.AssemblyName(include));
+            CreateFromAssemblyName(new AssemblyName(include));
         }
 
         /// <summary>
-        /// Constructor for the AssemblyReferenceNode
+        ///     Constructor for the AssemblyReferenceNode
         /// </summary>
         public AssemblyReferenceNode(ProjectNode root, string assemblyPath)
             : base(root)
         {
             // Validate the input parameters.
-            if(null == root)
+            if (null == root)
             {
                 throw new ArgumentNullException("root");
             }
-            if(string.IsNullOrEmpty(assemblyPath))
+            if (string.IsNullOrEmpty(assemblyPath))
             {
                 throw new ArgumentNullException("assemblyPath");
             }
 
-            this.InitializeFileChangeEvents();
+            InitializeFileChangeEvents();
 
             // The assemblyPath variable can be an actual path on disk or a generic assembly name.
-            if(File.Exists(assemblyPath))
+            if (File.Exists(assemblyPath))
             {
                 // The assemblyPath parameter is an actual file on disk; try to load it.
-                this.assemblyName = System.Reflection.AssemblyName.GetAssemblyName(assemblyPath);
+                assemblyName = AssemblyName.GetAssemblyName(assemblyPath);
                 this.assemblyPath = assemblyPath;
 
                 // We register with listeningto chnages onteh path here. The rest of teh cases will call into resolving the assembly and registration is done there.
-                this.fileChangeListener.ObserveItem(this.assemblyPath);
+                fileChangeListener.ObserveItem(this.assemblyPath);
             }
             else
             {
                 // The file does not exist on disk. This can be because the file / path is not
                 // correct or because this is not a path, but an assembly name.
                 // Try to resolve the reference as an assembly name.
-                this.CreateFromAssemblyName(new System.Reflection.AssemblyName(assemblyPath));
+                CreateFromAssemblyName(new AssemblyName(assemblyPath));
             }
         }
+
         #endregion
 
         #region methods
+
         /// <summary>
-        /// Closes the node.
+        ///     Closes the node.
         /// </summary>
         /// <returns></returns>
         public override int Close()
         {
             try
             {
-                this.Dispose(true);
+                Dispose(true);
             }
             finally
             {
@@ -214,97 +207,101 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Links a reference node to the project and hierarchy.
+        ///     Links a reference node to the project and hierarchy.
         /// </summary>
         protected override void BindReferenceData()
         {
-            Debug.Assert(this.assemblyName != null, "The AssemblyName field has not been initialized");
+            Debug.Assert(assemblyName != null, "The AssemblyName field has not been initialized");
 
             // If the item has not been set correctly like in case of a new reference added it now.
             // The constructor for the AssemblyReference node will create a default project item. In that case the Item is null.
             // We need to specify here the correct project element. 
-            if(this.ItemNode == null || this.ItemNode.Item == null)
+            if (ItemNode == null || ItemNode.Item == null)
             {
-                this.ItemNode = new ProjectElement(this.ProjectMgr, this.assemblyName.FullName, ProjectFileConstants.Reference);
+                ItemNode = new ProjectElement(ProjectMgr, assemblyName.FullName, ProjectFileConstants.Reference);
             }
 
             // Set the basic information we know about
-            this.ItemNode.SetMetadata(ProjectFileConstants.Name, this.assemblyName.Name);
-            if (!string.IsNullOrEmpty(this.assemblyPath))
+            ItemNode.SetMetadata(ProjectFileConstants.Name, assemblyName.Name);
+            if (!string.IsNullOrEmpty(assemblyPath))
             {
-                this.ItemNode.SetMetadata(ProjectFileConstants.AssemblyName, Path.GetFileName(this.assemblyPath));
+                ItemNode.SetMetadata(ProjectFileConstants.AssemblyName, Path.GetFileName(assemblyPath));
             }
             else
             {
-                this.ItemNode.SetMetadata(ProjectFileConstants.AssemblyName, null);
+                ItemNode.SetMetadata(ProjectFileConstants.AssemblyName, null);
             }
 
-            this.SetReferenceProperties();
+            SetReferenceProperties();
         }
 
         /// <summary>
-        /// Disposes the node
+        ///     Disposes the node
         /// </summary>
         /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
-            if(this.isDisposed)
+            if (isDisposed)
             {
                 return;
             }
 
             try
             {
-                this.UnregisterFromFileChangeService();
+                UnregisterFromFileChangeService();
             }
             finally
             {
                 base.Dispose(disposing);
-                this.isDisposed = true;
+                isDisposed = true;
             }
         }
 
         private void CreateFromAssemblyName(AssemblyName name)
         {
-            this.assemblyName = name;
+            assemblyName = name;
 
             // Use MsBuild to resolve the assemblyname 
-            this.ResolveAssemblyReference();
+            ResolveAssemblyReference();
 
-            if(String.IsNullOrEmpty(this.assemblyPath) && (null != this.ItemNode.Item))
+            if (string.IsNullOrEmpty(assemblyPath) && (null != ItemNode.Item))
             {
                 // Try to get the assembly name from the hintpath.
-                this.GetPathNameFromProjectFile();
-                if(this.assemblyPath == null)
+                GetPathNameFromProjectFile();
+                if (assemblyPath == null)
                 {
                     // Try to get the assembly name from the path
-                    this.assemblyName = System.Reflection.AssemblyName.GetAssemblyName(this.assemblyPath);
+                    assemblyName = AssemblyName.GetAssemblyName(assemblyPath);
                 }
             }
-            if(null == resolvedAssemblyName)
+            if (null == ResolvedAssembly)
             {
-                resolvedAssemblyName = assemblyName;
+                ResolvedAssembly = assemblyName;
             }
         }
 
         /// <summary>
-        /// Checks if an assembly is already added. The method parses all references and compares the full assemblynames, or the location of the assemblies to decide whether two assemblies are the same.
+        ///     Checks if an assembly is already added. The method parses all references and compares the full assemblynames, or
+        ///     the location of the assemblies to decide whether two assemblies are the same.
         /// </summary>
         /// <returns>true if the assembly has already been added.</returns>
         protected internal override bool IsAlreadyAdded(out ReferenceNode existingReference)
         {
-            ReferenceContainerNode referencesFolder = this.ProjectMgr.FindChild(ReferenceContainerNode.ReferencesNodeVirtualName) as ReferenceContainerNode;
+            var referencesFolder =
+                ProjectMgr.FindChild(ReferenceContainerNode.ReferencesNodeVirtualName) as ReferenceContainerNode;
             Debug.Assert(referencesFolder != null, "Could not find the References node");
-            bool shouldCheckPath = !string.IsNullOrEmpty(this.Url);
+            var shouldCheckPath = !string.IsNullOrEmpty(Url);
 
-            for(HierarchyNode n = referencesFolder.FirstChild; n != null; n = n.NextSibling)
+            for (var n = referencesFolder.FirstChild; n != null; n = n.NextSibling)
             {
-                AssemblyReferenceNode assemblyReferenceNode = n as AssemblyReferenceNode;
-                if(null != assemblyReferenceNode)
+                var assemblyReferenceNode = n as AssemblyReferenceNode;
+                if (null != assemblyReferenceNode)
                 {
                     // We will check if the full assemblynames are the same or if the Url of the assemblies is the same.
-                    if(String.Compare(assemblyReferenceNode.AssemblyName.FullName, this.assemblyName.FullName, StringComparison.OrdinalIgnoreCase) == 0 ||
-                        (shouldCheckPath && NativeMethods.IsSamePath(assemblyReferenceNode.Url, this.Url)))
+                    if (
+                        string.Compare(assemblyReferenceNode.AssemblyName.FullName, assemblyName.FullName,
+                            StringComparison.OrdinalIgnoreCase) == 0 ||
+                        (shouldCheckPath && NativeMethods.IsSamePath(assemblyReferenceNode.Url, Url)))
                     {
                         existingReference = assemblyReferenceNode;
                         return true;
@@ -317,12 +314,12 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Determines if this is node a valid node for painting the default reference icon.
+        ///     Determines if this is node a valid node for painting the default reference icon.
         /// </summary>
         /// <returns></returns>
         protected override bool CanShowDefaultIcon()
         {
-            if(String.IsNullOrEmpty(this.assemblyPath) || !File.Exists(this.assemblyPath))
+            if (string.IsNullOrEmpty(assemblyPath) || !File.Exists(assemblyPath))
             {
                 return false;
             }
@@ -332,165 +329,163 @@ namespace VsTeXProject.VisualStudio.Project
 
         private void GetPathNameFromProjectFile()
         {
-            string result = this.ItemNode.GetMetadata(ProjectFileConstants.HintPath);
-            if(String.IsNullOrEmpty(result))
+            var result = ItemNode.GetMetadata(ProjectFileConstants.HintPath);
+            if (string.IsNullOrEmpty(result))
             {
-                result = this.ItemNode.GetMetadata(ProjectFileConstants.AssemblyName);
-                if(String.IsNullOrEmpty(result))
+                result = ItemNode.GetMetadata(ProjectFileConstants.AssemblyName);
+                if (string.IsNullOrEmpty(result))
                 {
-                    this.assemblyPath = String.Empty;
+                    assemblyPath = string.Empty;
                 }
-                else if(!result.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                else if (!result.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
                 {
                     result += ".dll";
-                    this.assemblyPath = result;
+                    assemblyPath = result;
                 }
             }
             else
             {
-                this.assemblyPath = this.GetFullPathFromPath(result);
+                assemblyPath = GetFullPathFromPath(result);
             }
         }
 
         private string GetFullPathFromPath(string path)
         {
-            if(Path.IsPathRooted(path))
+            if (Path.IsPathRooted(path))
             {
                 return path;
             }
-            else
-            {
-                Uri uri = new Uri(this.ProjectMgr.BaseURI.Uri, path);
+            var uri = new Uri(ProjectMgr.BaseURI.Uri, path);
 
-                if(uri != null)
-                {
-                    return Microsoft.VisualStudio.Shell.Url.Unescape(uri.LocalPath, true);
-                }
+            if (uri != null)
+            {
+                return Microsoft.VisualStudio.Shell.Url.Unescape(uri.LocalPath, true);
             }
 
-            return String.Empty;
+            return string.Empty;
         }
 
         protected override void ResolveReference()
         {
-            this.ResolveAssemblyReference();
+            ResolveAssemblyReference();
         }
 
         private void SetHintPathAndPrivateValue()
         {
             // Remove the HintPath, we will re-add it below if it is needed
-            if(!String.IsNullOrEmpty(this.assemblyPath))
+            if (!string.IsNullOrEmpty(assemblyPath))
             {
-                this.ItemNode.SetMetadata(ProjectFileConstants.HintPath, null);
+                ItemNode.SetMetadata(ProjectFileConstants.HintPath, null);
             }
 
             // Get the list of items which require HintPath
-            IEnumerable<MSBuild.ProjectItem> references = this.ProjectMgr.BuildProject.GetItems(MsBuildGeneratedItemType.ReferenceCopyLocalPaths);
+            IEnumerable<MSBuild.ProjectItem> references =
+                ProjectMgr.BuildProject.GetItems(MsBuildGeneratedItemType.ReferenceCopyLocalPaths);
 
             // Now loop through the generated References to find the corresponding one
-            foreach (MSBuild.ProjectItem reference in references)
+            foreach (var reference in references)
             {
-                string fileName = Path.GetFileNameWithoutExtension(reference.EvaluatedInclude);
-                if(String.Compare(fileName, this.assemblyName.Name, StringComparison.OrdinalIgnoreCase) == 0)
+                var fileName = Path.GetFileNameWithoutExtension(reference.EvaluatedInclude);
+                if (string.Compare(fileName, assemblyName.Name, StringComparison.OrdinalIgnoreCase) == 0)
                 {
                     // We found it, now set some properties based on this.
-                    string hintPath = reference.GetMetadataValue(ProjectFileConstants.HintPath);
-                    this.SetHintPathAndPrivateValue(hintPath);
+                    var hintPath = reference.GetMetadataValue(ProjectFileConstants.HintPath);
+                    SetHintPathAndPrivateValue(hintPath);
                     break;
                 }
-
             }
         }
 
         /// <summary>
-        /// Sets the hint path to the provided value. 
-        /// It also sets the private value to true if it has not been already provided through the associated project element.
+        ///     Sets the hint path to the provided value.
+        ///     It also sets the private value to true if it has not been already provided through the associated project element.
         /// </summary>
         /// <param name="hintPath">The hint path to set.</param>
         private void SetHintPathAndPrivateValue(string hintPath)
         {
-            if (String.IsNullOrEmpty(hintPath))
+            if (string.IsNullOrEmpty(hintPath))
             {
                 return;
             }
 
             if (Path.IsPathRooted(hintPath))
             {
-                hintPath = PackageUtilities.GetPathDistance(this.ProjectMgr.BaseURI.Uri, new Uri(hintPath));
+                hintPath = PackageUtilities.GetPathDistance(ProjectMgr.BaseURI.Uri, new Uri(hintPath));
             }
 
-            this.ItemNode.SetMetadata(ProjectFileConstants.HintPath, hintPath);
+            ItemNode.SetMetadata(ProjectFileConstants.HintPath, hintPath);
 
             // Private means local copy; we want to know if it is already set to not override the default
-            string privateValue = this.ItemNode != null ? this.ItemNode.GetMetadata(ProjectFileConstants.Private) : null;
+            var privateValue = ItemNode != null ? ItemNode.GetMetadata(ProjectFileConstants.Private) : null;
 
             // If this is not already set, we default to true
-            if (String.IsNullOrEmpty(privateValue))
+            if (string.IsNullOrEmpty(privateValue))
             {
-                this.ItemNode.SetMetadata(ProjectFileConstants.Private, true.ToString());
+                ItemNode.SetMetadata(ProjectFileConstants.Private, true.ToString());
             }
         }
 
         /// <summary>
-        /// This function ensures that some properties of the reference are set.
+        ///     This function ensures that some properties of the reference are set.
         /// </summary>
         private void SetReferenceProperties()
         {
             // If there is an assembly path then just set the hint path
-            if (!string.IsNullOrEmpty(this.assemblyPath))
+            if (!string.IsNullOrEmpty(assemblyPath))
             {
-                this.SetHintPathAndPrivateValue(this.assemblyPath);
+                SetHintPathAndPrivateValue(assemblyPath);
                 return;
             }
 
             // Set a default HintPath for msbuild to be able to resolve the reference.
-            this.ItemNode.SetMetadata(ProjectFileConstants.HintPath, this.assemblyPath);
+            ItemNode.SetMetadata(ProjectFileConstants.HintPath, assemblyPath);
 
             // Resolve assembly referernces. This is needed to make sure that properties like the full path
             // to the assembly or the hint path are set.
-            if(this.ProjectMgr.Build(MsBuildTarget.ResolveAssemblyReferences) != MSBuildResult.Successful)
+            if (ProjectMgr.Build(MsBuildTarget.ResolveAssemblyReferences) != MSBuildResult.Successful)
             {
                 return;
             }
 
             // Check if we have to resolve again the path to the assembly.			
-            this.ResolveReference();
+            ResolveReference();
 
             // Make sure that the hint path if set (if needed).
-            this.SetHintPathAndPrivateValue();
+            SetHintPathAndPrivateValue();
         }
 
         /// <summary>
-        /// Does the actual job of resolving an assembly reference. We need a private method that does not violate 
-        /// calling virtual method from the constructor.
+        ///     Does the actual job of resolving an assembly reference. We need a private method that does not violate
+        ///     calling virtual method from the constructor.
         /// </summary>
         private void ResolveAssemblyReference()
         {
-            if (this.ProjectMgr == null || this.ProjectMgr.IsClosed)
+            if (ProjectMgr == null || ProjectMgr.IsClosed)
             {
                 return;
             }
 
-            var group = this.ProjectMgr.CurrentConfig.GetItems(ProjectFileConstants.ReferencePath);
+            var group = ProjectMgr.CurrentConfig.GetItems(ProjectFileConstants.ReferencePath);
             foreach (var item in group)
             {
-                string fullPath = this.GetFullPathFromPath(item.EvaluatedInclude);
+                var fullPath = GetFullPathFromPath(item.EvaluatedInclude);
 
-                System.Reflection.AssemblyName name = System.Reflection.AssemblyName.GetAssemblyName(fullPath);
+                var name = AssemblyName.GetAssemblyName(fullPath);
 
                 // Try with full assembly name and then with weak assembly name.
-                if (String.Equals(name.FullName, this.assemblyName.FullName, StringComparison.OrdinalIgnoreCase) || String.Equals(name.Name, this.assemblyName.Name, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(name.FullName, assemblyName.FullName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name.Name, assemblyName.Name, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!NativeMethods.IsSamePath(fullPath, this.assemblyPath))
+                    if (!NativeMethods.IsSamePath(fullPath, assemblyPath))
                     {
                         // set the full path now.
-                        this.assemblyPath = fullPath;
+                        assemblyPath = fullPath;
 
                         // We have a new item to listen too, since the assembly reference is resolved from a different place.
-                        this.fileChangeListener.ObserveItem(this.assemblyPath);
+                        fileChangeListener.ObserveItem(assemblyPath);
                     }
 
-                    this.resolvedAssemblyName = name;
+                    ResolvedAssembly = name;
 
                     // No hint path is needed since the assembly path will always be resolved.
                     return;
@@ -499,25 +494,25 @@ namespace VsTeXProject.VisualStudio.Project
         }
 
         /// <summary>
-        /// Registers with File change events
+        ///     Registers with File change events
         /// </summary>
         private void InitializeFileChangeEvents()
         {
-            this.fileChangeListener = new FileChangeManager(this.ProjectMgr.Site);
-            this.fileChangeListener.FileChangedOnDisk += this.OnAssemblyReferenceChangedOnDisk;
+            fileChangeListener = new FileChangeManager(ProjectMgr.Site);
+            fileChangeListener.FileChangedOnDisk += OnAssemblyReferenceChangedOnDisk;
         }
 
         /// <summary>
-        /// Unregisters this node from file change notifications.
+        ///     Unregisters this node from file change notifications.
         /// </summary>
         private void UnregisterFromFileChangeService()
         {
-            this.fileChangeListener.FileChangedOnDisk -= this.OnAssemblyReferenceChangedOnDisk;
-            this.fileChangeListener.Dispose();
+            fileChangeListener.FileChangedOnDisk -= OnAssemblyReferenceChangedOnDisk;
+            fileChangeListener.Dispose();
         }
 
         /// <summary>
-        /// Event callback. Called when one of the assembly file is changed.
+        ///     Event callback. Called when one of the assembly file is changed.
         /// </summary>
         /// <param name="sender">The FileChangeManager object.</param>
         /// <param name="e">Event args containing the file name that was updated.</param>
@@ -526,17 +521,18 @@ namespace VsTeXProject.VisualStudio.Project
             Debug.Assert(e != null, "No event args specified for the FileChangedOnDisk event");
 
             // We only care about file deletes, so check for one before enumerating references.			
-            if((e.FileChangeFlag & _VSFILECHANGEFLAGS.VSFILECHG_Del) == 0)
+            if ((e.FileChangeFlag & _VSFILECHANGEFLAGS.VSFILECHG_Del) == 0)
             {
                 return;
             }
 
 
-            if(NativeMethods.IsSamePath(e.FileName, this.assemblyPath))
+            if (NativeMethods.IsSamePath(e.FileName, assemblyPath))
             {
-                this.OnInvalidateItems(this.Parent);
+                OnInvalidateItems(Parent);
             }
         }
+
         #endregion
     }
 }
