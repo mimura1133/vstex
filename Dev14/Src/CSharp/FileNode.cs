@@ -216,6 +216,7 @@ namespace VsTeXProject.VisualStudio.Project
             extensionIcons.Add(".pfx", (int) ProjectNode.ImageName.PFX);
             extensionIcons.Add(".snk", (int) ProjectNode.ImageName.SNK);
             extensionIcons.Add(".tex", (int) ProjectNode.ImageName.TextFile);
+            extensionIcons.Add(".eps", (int)ProjectNode.ImageName.Image);
         }
 
         /// <summary>

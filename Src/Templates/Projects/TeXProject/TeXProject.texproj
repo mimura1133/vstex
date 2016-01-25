@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">Any CPU</Platform>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{905FDB88-4BBC-4A1B-9ECF-219B8ECBF912}</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>Document.tex</StartupFile>
+    <OutputType>pdf</OutputType>
+    <TargetExt>pdf</TargetExt>
+    <OutputPath>pdf\</OutputPath>
+    <TeXProcessor>platex</TeXProcessor>
+    <IntermediateOutputPath>obj\</IntermediateOutputPath>
+    <ToolsPath />
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+  
+  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+  
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <FullPath>.</FullPath>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <FullPath>.</FullPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Document.tex" />
+  </ItemGroup>
+  
+  
+  
+  <PropertyGroup>
+    <RealToolsPath Condition="'$(ToolsPath)' == ''"></RealToolsPath>
+    <RealToolsPath Condition="'$(ToolsPath)' != ''">$(ToolsPath)\</RealToolsPath>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <FilesToCopy Include="$(IntermediateOutputPath)\\*.pdf" />
+  </ItemGroup>
+  
+  <PropertyGroup>
+    <BuildDependsOn>
+      InitalizeWorkFolder;
+      PicturePreProcessing;
+      ContentPreProcessing;
+      TeXCompile;
+      MakePdf;
+    </BuildDependsOn>
+  </PropertyGroup>
+  
+  <Target Name="Compile" DependsOnTargets="$(BuildDependsOn)" Returns="$(TargetPath)" />
+  
+  <Target Name="InitalizeWorkFolder">
+    <RemoveDir Directories="$(IntermediateOutputPath);$(OutputPath);" />
+    <MakeDir Directories="$(IntermediateOutputPath);$(OutputPath);" />
+    <Copy SourceFiles="@(Compile)" DestinationFolder="$(IntermediateOutputPath)" />
+    <Copy SourceFiles="@(Picture)" DestinationFolder="$(IntermediateOutputPath)" />
+    <Copy SourceFiles="@(Content)" DestinationFolder="$(IntermediateOutputPath)" />
+  </Target>
+  
+  <Target Name="PicturePreProcessing" DependsOnTargets="InitalizeWorkFolder" Inputs="@(Picture)" Outputs="$(IntermediateOutputPath)\$(Include)">
+    <Exec Command="%(Picture.Generator) %(Picture.Filename)%(Picture.Extension)" Condition="('%(Picture.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" />
+    <Exec Command="$(RealToolsPath)extractbb %(Picture.Filename)%(Picture.Extension)" Condition="!('%(Picture.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" />
+  </Target>
+  
+  <Target Name="ContentPreProcessing" DependsOnTargets="PicturePreProcessing" Inputs="@(Content)" Outputs="$(IntermediateOutputPath)\$(Include)">
+    <Exec Command="%(Content.Generator) %(Content.Filename)%(Content.Extension)" Condition="('%(Content.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" />
+  </Target>
+  
+  <Target Name="TeXCompile" DependsOnTargets="ContentPreProcessing" Inputs="@(Compile)" Outputs="$(IntermediateOutputPath)\$(Include)">
+    <Exec Command="$(RealToolsPath)$(TeXProcessor) %(Compile.Filename)" Condition="!('%(Compile.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" />
+    <Exec Command="$(RealToolsPath)bibtex %(Compile.Filename)" Condition="!('%(Compile.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" IgnoreExitCode="true" />
+    <Exec Command="$(RealToolsPath)$(TeXProcessor) %(Compile.Filename)" Condition="!('%(Compile.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" />
+    <Exec Command="%(Compile.Generator) %(Compile.Filename)%(Compile.Extension)" Condition="('%(Compile.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" />
+  </Target>
+  
+  <Target Name="MakePdf" DependsOnTargets="TeXCompile">
+    <Exec Command="$(RealToolsPath)dvipdfmx %(Compile.Filename)" WorkingDirectory="$(IntermediateOutputPath)" IgnoreExitCode="true" Condition="'$(TeXProcessor)' != 'pdftex'" />
+    <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(OutputPath)" />
+    <Exec Command="$(WINDIR)\\System32\\cmd.exe /C $(OutputPath)\\%(FilesToCopy.FileName)%(FilesToCopy.Extension)" Condition=" '$(Configuration)' == 'Debug' " IgnoreExitCode="true" />
+  </Target>
+  
+</Project>
