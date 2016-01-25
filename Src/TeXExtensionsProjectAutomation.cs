@@ -32,6 +32,31 @@ namespace VsTeXProject
         public OATeXProjectFileItem(OAProject project, FileNode node)
             : base(project, node)
         {
+            try
+            {
+                if (node != null)
+                {
+                    var prop = (node.NodeProperties as FileNodeProperties);
+                    switch (prop.Extension.ToLower())
+                    {
+                        case ".tex":
+                            prop.BuildAction = BuildAction.Compile;
+                            break;
+                        case ".jpg":
+                        case ".png":
+                        case ".jpeg":
+                        case ".bmp":
+                        case ".gif":
+                            prop.BuildAction = BuildAction.Picture;
+                            break;
+                        default:
+                            prop.BuildAction = BuildAction.Content;
+                            break;
+
+                    }
+                }
+            }
+            catch { }
         }
         #endregion
     }

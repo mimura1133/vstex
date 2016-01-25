@@ -491,6 +491,7 @@ namespace VsTeXProject.VisualStudio.Project
         public SingleFileGeneratorNodeProperties(HierarchyNode node)
             : base(node)
         {
+
         }
 
         #endregion

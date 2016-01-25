@@ -215,6 +215,7 @@ namespace VsTeXProject.VisualStudio.Project
             extensionIcons.Add(".xml", (int) ProjectNode.ImageName.XMLFile);
             extensionIcons.Add(".pfx", (int) ProjectNode.ImageName.PFX);
             extensionIcons.Add(".snk", (int) ProjectNode.ImageName.SNK);
+            extensionIcons.Add(".tex", (int) ProjectNode.ImageName.TextFile);
         }
 
         /// <summary>
@@ -239,7 +240,7 @@ namespace VsTeXProject.VisualStudio.Project
         {
             var generator = CreateSingleFileGenerator();
 
-            return generator == null ? new FileNodeProperties(this) : new SingleFileGeneratorNodeProperties(this);
+            return new SingleFileGeneratorNodeProperties(this);
         }
 
         public override object GetIconHandle(bool open)

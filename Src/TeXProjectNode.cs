@@ -184,11 +184,9 @@ namespace VsTeXProject
             string className = Path.GetFileNameWithoutExtension(target);
             this.FileTemplateProcessor.GetFileNamespace(target, this);
 
-            this.FileTemplateProcessor.AddReplace("$safeprojectname$", className);
             try
             {
                 this.FileTemplateProcessor.UntokenFile(source, target);
-
                 this.FileTemplateProcessor.Reset();
             }
             catch(Exception e)
