@@ -137,14 +137,12 @@
     <Compile Include="TeXProjectFactory.cs" />
     <Compile Include="TeXProjectFileNode.cs" />
     <Compile Include="TeXProjectNode.cs" />
-    <None Include="Templates\ProjectItems\TeXProject\Plain.tex" />
+    <Content Include="Templates\ProjectItems\TeXProject\Plain.tex">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <ZipProject Include="Templates\Projects\TeXProject\Document.tex" />
     <ZipProject Include="Templates\Projects\TeXProject\TeXProject.texproj" />
     <None Include="TeXExtensions.snk" />
-    <ZipProject Include="Projects\Templates\Projects\TeXProject\TeXProject.texproj">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <SubType>Designer</SubType>
-    </ZipProject>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources.resx">
@@ -193,14 +191,12 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="License.txt" />
-    <Content Include="Resources\icon.bmp" />
+    <Content Include="Resources\icon.bmp">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <ZipProject Include="Templates\Projects\TeXProject\TeXProject.ico" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Projects\Attributes\" />
-    <Folder Include="Projects\Resources\" />
-    <Folder Include="Projects\Templates\ProjectItems\TeXProject\" />
-  </ItemGroup>
+  <ItemGroup />
   <!-- This import the files which makes up the project base classes -->
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
