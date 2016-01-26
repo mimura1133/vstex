@@ -2,7 +2,7 @@
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
     <Identity Id="TeXProject.9B49879C-74B2-4A7E-8412-D370DE980DBD" Version="1.0" Language="en-US" Publisher="Mimura" />
-    <DisplayName>TeXProject</DisplayName>
+    <DisplayName>TeX Support for Visual Studio</DisplayName>
     <Description xml:space="preserve">TeX Support For Visual Studio</Description>
     <License>License.txt</License>
   </Metadata>

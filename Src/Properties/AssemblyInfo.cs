@@ -50,11 +50,11 @@ using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("VsTeXProject")]
+[assembly: AssemblyTitle("TeX Support for Visual Studio")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Mimura")]
-[assembly: AssemblyProduct("VsTeXProject")]
+[assembly: AssemblyProduct("TeX Support for Visual Studio")]
 [assembly: AssemblyCopyright("Copyright © Mimura 2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

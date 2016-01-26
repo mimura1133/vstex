@@ -140,8 +140,12 @@
     <Content Include="Templates\ProjectItems\TeXProject\Plain.tex">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <ZipProject Include="Templates\Projects\TeXProject\Document.tex" />
-    <ZipProject Include="Templates\Projects\TeXProject\TeXProject.texproj" />
+    <Content Include="Templates\Projects\TeXProject\Document.tex">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="Templates\Projects\TeXProject\TeXProject.texproj">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <None Include="TeXExtensions.snk" />
   </ItemGroup>
   <ItemGroup>
@@ -193,10 +197,10 @@
     <Content Include="License.txt">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Resources\icon.bmp">
+    <EmbeddedResource Include="Resources\icon.bmp" />
+    <Content Include="Templates\Projects\TeXProject\TeXProject.ico">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <ZipProject Include="Templates\Projects\TeXProject\TeXProject.ico" />
   </ItemGroup>
   <ItemGroup />
   <!-- This import the files which makes up the project base classes -->
