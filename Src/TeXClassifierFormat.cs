@@ -13,24 +13,11 @@ namespace VsTeXProject
     class TeXClassifierFormat
     {
         [Export(typeof(EditorFormatDefinition))]
-        [ClassificationType(ClassificationTypeNames = "TeXClassifierNormalFormat")]
-        [Name("TeXClassifierNormalFormat")]
-        [UserVisible(true)] //this should be visible to the end user
-        [Order(Before = Priority.Low)] //set the priority to be after the default classifiers
-        internal sealed class TeXClassifierNormalFormat : ClassificationFormatDefinition
-        {
-            public TeXClassifierNormalFormat()
-            {
-                DisplayName = "TeXClassifierNormalFormat"; //human readable version of the name
-                ForegroundColor = Colors.Black;
-            }
-        }
-
-        [Export(typeof(EditorFormatDefinition))]
         [ClassificationType(ClassificationTypeNames = "TeXClassifierCommentOutFormat")]
         [Name("TeXClassifierCommentOutFormat")]
         [UserVisible(true)] //this should be visible to the end user
-        [Order(Before = Priority.High)] //set the priority to be after the default classifiers
+        [Order(Before = Priority.Low)]
+        [Order(After = Priority.High)]
         internal sealed class TeXClassifierCommentOutFormat : ClassificationFormatDefinition
         {
             public TeXClassifierCommentOutFormat()
@@ -44,13 +31,14 @@ namespace VsTeXProject
         [ClassificationType(ClassificationTypeNames = "TeXClassifierBeginEndFormat")]
         [Name("TeXClassifierBeginEndFormat")]
         [UserVisible(true)] //this should be visible to the end user
-        [Order(Before = Priority.Default)] //set the priority to be after the default classifiers
+        [Order(Before = Priority.Low)]
+        [Order(After = Priority.High)]
         internal sealed class TeXClassifierBeginEndFormat : ClassificationFormatDefinition
         {
             public TeXClassifierBeginEndFormat()
             {
                 DisplayName = "TeXClassifierBeginEndFormat"; //human readable version of the name
-                ForegroundColor = Colors.DarkRed;
+                ForegroundColor = Colors.CadetBlue;
             }
         }
 
@@ -58,7 +46,8 @@ namespace VsTeXProject
         [ClassificationType(ClassificationTypeNames = "TeXClassifierFunctionFormat")]
         [Name("TeXClassifierFunctionFormat")]
         [UserVisible(true)] //this should be visible to the end user
-        [Order(Before = Priority.Default)] //set the priority to be after the default classifiers
+        [Order(Before = Priority.Low)]
+        [Order(After = Priority.Default)]
         internal sealed class TeXClassifierFunctionFormat : ClassificationFormatDefinition
         {
             public TeXClassifierFunctionFormat()
@@ -72,7 +61,8 @@ namespace VsTeXProject
         [ClassificationType(ClassificationTypeNames = "TeXClassifierBraceFormat")]
         [Name("TeXClassifierBraceFormat")]
         [UserVisible(true)] //this should be visible to the end user
-        [Order(Before = Priority.High)] //set the priority to be after the default classifiers
+        [Order(Before = Priority.Default)]
+        [Order(After = Priority.Default)]
         internal sealed class TeXClassifierBraceFormat : ClassificationFormatDefinition
         {
             public TeXClassifierBraceFormat()

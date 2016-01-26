@@ -3,3 +3,9 @@
 ################################################################################
 
 *.user
+Dev14/Src/CSharp/bin/
+Dev14/Src/CSharp/obj/
+packages/
+Src/bin/
+Src/obj/
+.vs/

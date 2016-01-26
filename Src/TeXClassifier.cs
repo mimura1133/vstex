@@ -6,10 +6,13 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
+using Microsoft.VisualStudio.Text.Editor;
+using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
 
 namespace VsTeXProject
 {
+
     [Export(typeof(IClassifierProvider))]
     [ContentType("vstex")]
     internal class TeXClassifierProvider : IClassifierProvider
@@ -18,7 +21,11 @@ namespace VsTeXProject
         ///     Import the classification registry to be used for getting a reference
         ///     to the custom classification type later.
         /// </summary>
-        [Import] internal IClassificationTypeRegistryService ClassificationRegistry = null;
+        [Import]
+        internal IClassificationTypeRegistryService classificationRegistry = null;
+
+        [Import]
+        internal IBufferTagAggregatorFactoryService tagAggregatorFactory = null;
 
         public TeXClassifierProvider()
         {
@@ -28,115 +35,65 @@ namespace VsTeXProject
         {
             return
                 buffer.Properties.GetOrCreateSingletonProperty(
-                    delegate { return new TeXClassifier(ClassificationRegistry); });
+                    delegate { return new TeXClassifier(buffer, classificationRegistry, tagAggregatorFactory); });
         }
     }
 
     internal class TeXClassifier : IClassifier
     {
-        private readonly IClassificationType _normalType;
         private readonly IClassificationType _commentOutType;
         private readonly IClassificationType _beginEndType;
         private readonly IClassificationType _functionType;
         private readonly IClassificationType _braceType;
 
-        internal TeXClassifier(IClassificationTypeRegistryService registry)
+        private readonly ITagAggregator<TeXClassifierCommentOutFormatTag> _commentOutTag;
+        private readonly ITagAggregator<TeXClassifierBeginEndFormatTag> _beginEndTag;
+        private readonly ITagAggregator<TeXClassifierFunctionFormatTag> _functionTag;
+        private readonly ITagAggregator<TeXClassifierBraceFormatTag> _braceTag;
+
+        internal TeXClassifier(ITextBuffer buffer,IClassificationTypeRegistryService registry, IBufferTagAggregatorFactoryService factory)
         {
-            _normalType = registry.GetClassificationType("TeXClassifierNormalFormat");
             _commentOutType = registry.GetClassificationType("TeXClassifierCommentOutFormat");
             _beginEndType = registry.GetClassificationType("TeXClassifierBeginEndFormat");
             _functionType = registry.GetClassificationType("TeXClassifierFunctionFormat");
             _braceType = registry.GetClassificationType("TeXClassifierBraceFormat");
+
+            _commentOutTag = factory.CreateTagAggregator<TeXClassifierCommentOutFormatTag>(buffer);
+            _beginEndTag = factory.CreateTagAggregator<TeXClassifierBeginEndFormatTag>(buffer);
+            _functionTag = factory.CreateTagAggregator<TeXClassifierFunctionFormatTag>(buffer);
+            _braceTag = factory.CreateTagAggregator<TeXClassifierBraceFormatTag>(buffer);
+        }
+
+        public IList<ClassificationSpan> GetClassificationSpans(SnapshotSpan span)
+        {
+            var classifiedSpans = new List<ClassificationSpan>();
+            classifiedSpans.AddRange(GetClassificationSpansPerType(span, _commentOutType, _commentOutTag));
+            classifiedSpans.AddRange(GetClassificationSpansPerType(span, _beginEndType, _beginEndTag));
+            classifiedSpans.AddRange(GetClassificationSpansPerType(span, _functionType, _functionTag));
+            classifiedSpans.AddRange(GetClassificationSpansPerType(span, _braceType, _braceTag));
+
+            return classifiedSpans;
+        }
+
+        private List<ClassificationSpan> GetClassificationSpansPerType<T>(SnapshotSpan span, IClassificationType classtype,
+            ITagAggregator<T> tagger)
+            where T: IGlyphTag
+        {
+            var classifiedSpans = new List<ClassificationSpan>();
+            var tags = tagger.GetTags(span);
+
+            foreach (IMappingTagSpan<T> tagSpan in tags)
+            {
+                SnapshotSpan todoSpan = tagSpan.Span.GetSpans(span.Snapshot).First();
+                classifiedSpans.Add(new ClassificationSpan(todoSpan, classtype));
+            }
+
+            return classifiedSpans;
         }
 
         /// <summary>
-        ///     This method scans the given SnapshotSpan for potential matches for this classification.
-        ///     In this instance, it classifies everything and returns each span as a new ClassificationSpan.
+        /// Create an event for when the Classification changes
         /// </summary>
-        /// <param name="trackingSpan">The span currently being classified</param>
-        /// <returns>A list of ClassificationSpans that represent spans identified to be of this classification</returns>
-        public IList<ClassificationSpan> GetClassificationSpans(SnapshotSpan span)
-        {
-            var classifications = new List<ClassificationSpan>();
-            var text = span.GetText();
-
-            if (text == "")
-            {
-                return classifications;
-            }
-
-            for (int pt = span.Start; pt < span.End; pt++)
-            {
-
-                if (text == "")
-                    return classifications;
-
-                if (text[0] == '%')
-                {
-                    classifications.Add(
-                        new ClassificationSpan(new SnapshotSpan(span.Snapshot, new Span(pt, text.Length)),
-                            this._commentOutType));
-                    return classifications;
-                }
-
-                if (text[0] == '\\')
-                {
-                    var color = this._functionType;
-                    var len = 0;
-                    var paramnest = 0;
-                    var maxlines = 10;
-
-                    if (text.StartsWith("\\begin") || text.StartsWith("\\end"))
-                    {
-                        color = this._beginEndType;
-                    }
-
-                    for (len = 1; len < text.Length; len++)
-                    {
-                        if (text[len] == '{' || text[len] == '[' || text[len] == '}' || text[len] == ']' ||
-                            text[len] == ' ')
-                            break;
-                    }
-
-                    var snaptext = text;
-                    var line = span.Snapshot.GetLineNumberFromPosition(pt);
-                    var start = pt;
-                    var snapshotline = span.Snapshot.GetLineFromLineNumber(line);
-
-                    do
-                    {
-                        
-                        for (; len < snaptext.Length; len++)
-                        {
-                            if (snaptext[len] == '{' || snaptext[len] == '[') paramnest++;
-                            if (snaptext[len] == '}' || snaptext[len] == ']') paramnest--;
-                            if (snaptext[len] == '\\') len++;
-
-                            if (paramnest == 0 && snaptext[len] != ' ' && snaptext[len] != '{' && snaptext[len] != '[' &&
-                                snaptext[len] != '}' && snaptext[len] != ']') break;
-                        }
-                        classifications.Add(new ClassificationSpan(new SnapshotSpan(snapshotline.Snapshot, start, len),color));
-
-                        maxlines--;
-                        if (maxlines <= 0) break;
-                        if (paramnest == 0) break;
-
-                        line++;
-                        if (line < span.Snapshot.Lines.Count())
-                        {
-                            snapshotline = span.Snapshot.GetLineFromLineNumber(line);
-                            snaptext = snapshotline.GetTextIncludingLineBreak();
-                            start = snapshotline.Start;
-                            len = 0;
-                        }
-                    } while (line < span.Snapshot.Lines.Count());
-                }
-
-                text = text.Substring(1);
-            }
-
-            return classifications;
-        }
 #pragma warning disable 67
         public event EventHandler<ClassificationChangedEventArgs> ClassificationChanged;
 #pragma warning restore 67

@@ -260,7 +260,7 @@ namespace VsTeXProject.VisualStudio.Project
             {
                 try
                 {
-                    ErrorHandler.ThrowOnFailure(windowFrame.CloseFrame(0));
+                    windowFrame.CloseFrame(0);
                 }
                 finally
                 {
