@@ -190,7 +190,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="License.txt" />
+    <Content Include="License.txt">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <Content Include="Resources\icon.bmp">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
