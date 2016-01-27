@@ -66,7 +66,7 @@
   </Target>
   
   <Target Name="TeXCompile" DependsOnTargets="ContentPreProcessing" Inputs="@(Compile)" Outputs="$(IntermediateOutputPath)\$(Include)">
-    <Exec Command="$(RealToolsPath)$(TeXProcessor) %(Compile.Filename)" Condition="!('%(Compile.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" />
+    <Exec Command="$(RealToolsPath)$(TeXProcessor) %(Compile.Filename)" Condition="!('%(Compile.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)"  CustomErrorRegularExpression="^l\.([0-9]+?) (.*)"/>
     <Exec Command="$(RealToolsPath)bibtex %(Compile.Filename)" Condition="!('%(Compile.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" IgnoreExitCode="true" />
     <Exec Command="$(RealToolsPath)$(TeXProcessor) %(Compile.Filename)" Condition="!('%(Compile.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" />
     <Exec Command="%(Compile.Generator) %(Compile.Filename)%(Compile.Extension)" Condition="('%(Compile.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" />

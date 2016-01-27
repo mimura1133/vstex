@@ -34,7 +34,7 @@ namespace VsTeXProject
         {
             try
             {
-                if (node != null)
+                if (node != null && project.IsDirty)
                 {
                     var prop = (node.NodeProperties as FileNodeProperties);
                     switch (prop.Extension.ToLower())

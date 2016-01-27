@@ -23,7 +23,7 @@ namespace VsTeXProject
             public TeXClassifierCommentOutFormat()
             {
                 DisplayName = "TeXClassifierCommentOutFormat"; //human readable version of the name
-                ForegroundColor = Colors.Green;
+                ForegroundColor = Colors.LightSteelBlue;
             }
         }
 
@@ -38,7 +38,7 @@ namespace VsTeXProject
             public TeXClassifierBeginEndFormat()
             {
                 DisplayName = "TeXClassifierBeginEndFormat"; //human readable version of the name
-                ForegroundColor = Colors.CadetBlue;
+                ForegroundColor = Colors.SeaGreen;
             }
         }
 
@@ -68,7 +68,7 @@ namespace VsTeXProject
             public TeXClassifierBraceFormat()
             {
                 DisplayName = "TeXClassifierBraceFormat"; //human readable version of the name
-                ForegroundColor = Colors.PaleVioletRed;
+                ForegroundColor = Colors.DarkMagenta;
             }
         }
     }

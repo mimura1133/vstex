@@ -12,10 +12,16 @@ namespace VsTeXProject
     internal static class TeXContentTypeDefinitions
     {
         [Export] [Name("vstex")] [BaseDefinition("text")] internal static ContentTypeDefinition
-            hidingContentTypeDefinition = null;
+            vstexContentTypeDefinition = null;
 
         [Export] [FileExtension(".tex")] [ContentType("vstex")] internal static FileExtensionToContentTypeDefinition
-            hiddenFileExtensionDefinition = null;
+            vstex_texfile_FileExtensionDefinition = null;
+
+        [Export]
+        [FileExtension(".sty")]
+        [ContentType("vstex")]
+        internal static FileExtensionToContentTypeDefinition
+            vstex_styfile_FileExtensionDefinition = null;
 
     }
 }

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="TeXProject.9B49879C-74B2-4A7E-8412-D370DE980DBD" Version="1.002" Language="ja-JP" Publisher="Mimura" />
+    <Identity Id="TeXProject.9B49879C-74B2-4A7E-8412-D370DE980DBD" Version="1.004" Language="ja-JP" Publisher="Mimura" />
     <DisplayName>TeX Support for Visual Studio</DisplayName>
     <Description xml:space="preserve">TeX Support For Visual Studio</Description>
     <MoreInfo>http://mimumimu.net/beta/#VsTeXProj</MoreInfo>
