@@ -36,10 +36,6 @@
     <RealToolsPath Condition="'$(ToolsPath)' != ''">$(ToolsPath)\</RealToolsPath>
   </PropertyGroup>
   
-  <ItemGroup>
-    <FilesToCopy Include="$(IntermediateOutputPath)\\*.pdf" />
-  </ItemGroup>
-  
   <PropertyGroup>
     <BuildDependsOn>
       InitalizeWorkFolder;
@@ -75,7 +71,10 @@
     <Exec Command="$(RealToolsPath)$(TeXProcessor) %(Compile.Filename)" Condition="!('%(Compile.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" />
     <Exec Command="%(Compile.Generator) %(Compile.Filename)%(Compile.Extension)" Condition="('%(Compile.Generator)' != '')" WorkingDirectory="$(IntermediateOutputPath)" />
   </Target>
-  
+
+  <ItemGroup>
+    <FilesToCopy Include="$(IntermediateOutputPath)\\*.pdf" />
+  </ItemGroup>
   <Target Name="MakePdf" DependsOnTargets="TeXCompile">
     <Exec Command="$(RealToolsPath)dvipdfmx %(Compile.Filename)" WorkingDirectory="$(IntermediateOutputPath)" IgnoreExitCode="true" Condition="'$(TeXProcessor)' != 'pdftex'" />
     <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(OutputPath)" />

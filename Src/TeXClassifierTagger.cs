@@ -148,17 +148,14 @@ namespace VsTeXProject
             {
                 var line = curSpan.Snapshot.GetLineNumberFromPosition(curSpan.Start);
                 var text = curSpan.GetText();
-                var inBrace = line > 0 ? _tagHashSet.Contains(line - 1) : false;
+                var inBrace = _tagHashSet.Contains(line);
 
-                if (this._tagHashSet.Contains(line))
-                    this._tagHashSet.Remove(line);
-
+                _tagHashSet.Remove(line + 1);
 
                 for (var pt = 0; pt < curSpan.Length; pt++)
                 {
                     if (text[pt] == '\\')
                     {
-                        pt++;
                         continue;
                     }
 
@@ -181,16 +178,22 @@ namespace VsTeXProject
                                 break;
                             }
                         }
+                        if (endbrace)
+                        {
+                            this._tagHashSet.Remove(line + 1);
+                            inBrace = false;
+                        }
+                        else
+                        {
+                            this._tagHashSet.Add(line + 1);
+                        }
+
                         yield return
                             new TagSpan<TeXClassifierBraceFormatTag>(
                                 new SnapshotSpan(curSpan.Snapshot, new Span(curSpan.Start + pt, end - pt)),
                                 new TeXClassifierBraceFormatTag());
 
-
-                        if (!endbrace)
-                        {
-                            this._tagHashSet.Add(line);
-                        }
+                        pt = end -1;
                     }
                 }
             }
